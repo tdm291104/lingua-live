@@ -41,7 +41,12 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose }) {
   let lastFinalHash = '';
 
   ws.on('message', (msg) => {
-    const data = JSON.parse(msg.toString());
+    let data;
+    try {
+      data = JSON.parse(msg.toString());
+    } catch {
+      return;
+    }
     const alt = data?.channel?.alternatives?.[0];
     if (!alt || !alt.transcript) return;
 
