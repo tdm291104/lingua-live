@@ -10,6 +10,7 @@ async function callGPT(apiKey, messages, temperature) {
     },
     body: JSON.stringify({ model: 'gpt-4o-mini', temperature, messages }),
   });
+  if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content || '';
 }
@@ -43,7 +44,11 @@ async function analyze(apiKey, transcriptLines) {
     0.3
   );
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return { summary: raw, actions: [], replies: [] };
   } catch {
     return { summary: raw, actions: [], replies: [] };
   }

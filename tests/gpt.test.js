@@ -3,6 +3,7 @@ const { translate, analyze, qa } = require('../src/gpt');
 
 function mockFetch(content) {
   global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
     json: async () => ({ choices: [{ message: { content } }] }),
   });
 }
