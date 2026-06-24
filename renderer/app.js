@@ -8,7 +8,7 @@ const SPEAKERS = [
   { bar: 'oklch(0.6 0.18 295)', text: 'oklch(0.42 0.15 295)' },
 ];
 function speakerColor(id) { return SPEAKERS[id % SPEAKERS.length]; }
-function speakerLabel(id) { return `Speaker ${id}`; }
+function speakerLabel(id) { return state.speakerNames[id] ?? `Speaker ${id}`; }
 function escapeHTML(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -28,6 +28,7 @@ const state = {
   liveSpeakerId: 0,
   analysisLoading: false,
   qaLoading: false,
+  speakerNames: {},
 };
 
 const $ = (id) => document.getElementById(id);
@@ -96,34 +97,52 @@ function applyLangStyles() {
   $('float-lang-label').textContent = state.lang === 'en' ? 'EN → VI' : 'JA → VI';
 }
 
-// ── Render transcript line HTML ──
-function lineHTML(line, live) {
+// ── Transcript rendering (incremental — no full rebuilds on interim) ──
+function committedLineHTML(line) {
   const c = speakerColor(line.speakerId);
-  const caret = live
-    ? `<span style="display:inline-block;width:2px;height:15px;background:oklch(0.62 0.18 295);margin-left:2px;vertical-align:-2px;" class="anim-caret"></span>`
-    : '';
   return `
     <div class="anim-bubble" style="display:flex;gap:14px;margin-bottom:18px;">
       <div style="flex-shrink:0;width:96px;text-align:right;padding-top:2px;">
-        <div style="font-size:12.5px;font-weight:600;color:${c.text};">${escapeHTML(speakerLabel(line.speakerId))}</div>
+        <div data-speakerid="${line.speakerId}" style="font-size:12.5px;font-weight:600;color:${c.text};cursor:pointer;" title="Click để đổi tên">${escapeHTML(speakerLabel(line.speakerId))}</div>
         <div style="font-family:'Geist Mono',monospace;font-size:10.5px;color:oklch(0.72 0.01 270);margin-top:2px;">${escapeHTML(line.timestamp)}</div>
       </div>
-      <div style="flex:1;border-left:2px solid ${live ? 'oklch(0.62 0.18 295)' : c.bar};padding-left:14px;">
-        <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(line.text)}${caret}</div>
+      <div style="flex:1;border-left:2px solid ${c.bar};padding-left:14px;">
+        <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(line.text)}</div>
         ${line.translation ? `<div style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${escapeHTML(line.translation)}</div>` : ''}
       </div>
     </div>`;
 }
 
-function renderLines() {
-  const container = $('lines-container');
-  const committed = state.lines.map((l) => lineHTML(l, false)).join('');
-  const live = state.liveText
-    ? lineHTML({ speakerId: state.liveSpeakerId, text: state.liveText, translation: '', timestamp: '' }, true)
-    : '';
-  container.innerHTML = committed + live;
-  container.scrollTop = container.scrollHeight;
+function liveLineHTML(speakerId, text) {
+  const c = speakerColor(speakerId);
+  const caret = `<span style="display:inline-block;width:2px;height:15px;background:oklch(0.62 0.18 295);margin-left:2px;vertical-align:-2px;" class="anim-caret"></span>`;
+  return `
+    <div style="display:flex;gap:14px;margin-bottom:18px;">
+      <div style="flex-shrink:0;width:96px;text-align:right;padding-top:2px;">
+        <div style="font-size:12.5px;font-weight:600;color:${c.text};">${escapeHTML(speakerLabel(speakerId))}</div>
+      </div>
+      <div style="flex:1;border-left:2px solid oklch(0.62 0.18 295);padding-left:14px;">
+        <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(text)}${caret}</div>
+      </div>
+    </div>`;
+}
 
+function appendFinalLine(line) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = committedLineHTML(line);
+  $('committed-lines').appendChild(wrapper);
+  $('live-line').innerHTML = '';
+  const c = $('lines-container');
+  c.scrollTop = c.scrollHeight;
+}
+
+function updateLiveLine(speakerId, text) {
+  $('live-line').innerHTML = text ? liveLineHTML(speakerId, text) : '';
+  const c = $('lines-container');
+  c.scrollTop = c.scrollHeight;
+}
+
+function updateFloatLines() {
   $('float-lines').innerHTML = state.lines.slice(-3).map((l) => {
     const c = speakerColor(l.speakerId);
     return `<div style="border-left:2px solid ${c.bar};padding-left:11px;margin-bottom:13px;">
@@ -136,6 +155,25 @@ function renderLines() {
     </div>`;
   }).join('');
 }
+
+// Rebuild committed lines when speaker names change (rare — user action only)
+function rebuildCommittedLines() {
+  $('committed-lines').innerHTML = state.lines.map((l) => committedLineHTML(l)).join('');
+}
+
+// Click speaker label → toggle "Tôi"
+document.addEventListener('click', (e) => {
+  const label = e.target.closest('[data-speakerid]');
+  if (!label) return;
+  const id = parseInt(label.dataset.speakerid, 10);
+  if (state.speakerNames[id] === 'Tôi') {
+    delete state.speakerNames[id];
+  } else {
+    state.speakerNames[id] = 'Tôi';
+  }
+  rebuildCommittedLines();
+  updateFloatLines();
+});
 
 function renderAnalysis(a) {
   $('summary-text').textContent = a.summary || 'Chưa có tóm tắt.';
@@ -163,20 +201,21 @@ function appendQaMessage(q, a) {
 // ── IPC subscriptions ──
 window.api.onStatus(({ listening }) => {
   state.listening = listening;
-  if (!listening) { state.liveText = ''; renderLines(); }
+  if (!listening) { state.liveText = ''; updateLiveLine(0, ''); }
   applyListeningState();
 });
 
 window.api.onInterim(({ speakerId, text }) => {
   state.liveText      = text;
   state.liveSpeakerId = speakerId;
-  renderLines();
+  updateLiveLine(speakerId, text);
 });
 
 window.api.onFinal((line) => {
   state.lines.push(line);
   state.liveText = '';
-  renderLines();
+  appendFinalLine(line);
+  updateFloatLines();
   $('session-date').textContent = line.timestamp;
 });
 
