@@ -53,6 +53,9 @@ body.state-listening .when-listening { display: flex; }
 .anim-caret  { animation: caret 1s step-end infinite; }
 .anim-dot    { animation: pulseDot 1.4s ease-in-out infinite; }
 
+/* ── Text selection ── */
+#committed-lines, #live-line { user-select: text; -webkit-user-select: text; }
+
 /* ── Buttons reset ── */
 button {
   font-family: inherit;
