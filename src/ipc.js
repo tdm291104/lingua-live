@@ -12,22 +12,32 @@ let transcriptLines  = [];
 let currentLang      = 'en';
 let currentSources   = { system: true, mic: true };
 let shouldReconnect  = false;
+let connectionId     = 0;
 
 function setup(mainWindow) {
   const send = (ch, data) => mainWindow.webContents.send(ch, data);
 
   function openDeepgram(lang) {
     if (ws) { try { ws.close(); } catch {} ws = null; }
+    const myId = ++connectionId;
     ws = connect(lang, DEEPGRAM_KEY, {
       onInterim: (d) => send('transcript:interim', d),
       onFinal: async (d) => {
-        const translation = await translate(OPENAI_KEY, d.text, lang);
-        const line = { ...d, translation };
-        transcriptLines.push(line);
-        send('transcript:final', line);
+        try {
+          const translation = await translate(OPENAI_KEY, d.text, lang);
+          const line = { ...d, translation };
+          transcriptLines.push(line);
+          send('transcript:final', line);
+        } catch {
+          const line = { ...d, translation: '' };
+          transcriptLines.push(line);
+          send('transcript:final', line);
+        }
       },
       onClose: () => {
-        if (shouldReconnect) setTimeout(() => openDeepgram(currentLang), 1500);
+        if (shouldReconnect && connectionId === myId) {
+          setTimeout(() => openDeepgram(currentLang), 1500);
+        }
       },
     });
   }
@@ -69,13 +79,21 @@ function setup(mainWindow) {
   });
 
   ipcMain.on('analyze:request', async () => {
-    const result = await analyze(OPENAI_KEY, transcriptLines);
-    send('analysis:result', result);
+    try {
+      const result = await analyze(OPENAI_KEY, transcriptLines);
+      send('analysis:result', result);
+    } catch {
+      send('analysis:result', { summary: '', actions: [], replies: [] });
+    }
   });
 
   ipcMain.on('qa:ask', async (_, { question }) => {
-    const answer = await qa(OPENAI_KEY, question, transcriptLines);
-    send('qa:answer', { answer });
+    try {
+      const answer = await qa(OPENAI_KEY, question, transcriptLines);
+      send('qa:answer', { answer });
+    } catch {
+      send('qa:answer', { answer: 'Lỗi kết nối — thử lại.' });
+    }
   });
 }
 
