@@ -10,8 +10,10 @@ function buildUrl(lang) {
     '&sample_rate=16000' +
     '&channels=1' +
     '&interim_results=true' +
+    '&smart_format=true' +
     '&punctuate=true' +
-    '&endpointing=50' +
+    '&endpointing=300' +
+    '&diarize=true' +
     '&diarize_model=latest'
   );
 }
