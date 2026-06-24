@@ -12,7 +12,7 @@ function buildUrl(lang) {
     '&interim_results=true' +
     '&smart_format=true' +
     '&punctuate=true' +
-    '&endpointing=300' +
+    '&endpointing=100' +
     '&diarize=true' +
     '&diarize_model=latest'
   );
