@@ -9,6 +9,14 @@ const SPEAKERS = [
 ];
 function speakerColor(id) { return SPEAKERS[id % SPEAKERS.length]; }
 function speakerLabel(id) { return `Speaker ${id}`; }
+function escapeHTML(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 const state = {
   view: 'expanded',
@@ -97,12 +105,12 @@ function lineHTML(line, live) {
   return `
     <div class="anim-bubble" style="display:flex;gap:14px;margin-bottom:18px;">
       <div style="flex-shrink:0;width:96px;text-align:right;padding-top:2px;">
-        <div style="font-size:12.5px;font-weight:600;color:${c.text};">${speakerLabel(line.speakerId)}</div>
-        <div style="font-family:'Geist Mono',monospace;font-size:10.5px;color:oklch(0.72 0.01 270);margin-top:2px;">${line.timestamp}</div>
+        <div style="font-size:12.5px;font-weight:600;color:${c.text};">${escapeHTML(speakerLabel(line.speakerId))}</div>
+        <div style="font-family:'Geist Mono',monospace;font-size:10.5px;color:oklch(0.72 0.01 270);margin-top:2px;">${escapeHTML(line.timestamp)}</div>
       </div>
       <div style="flex:1;border-left:2px solid ${live ? 'oklch(0.62 0.18 295)' : c.bar};padding-left:14px;">
-        <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${line.text}${caret}</div>
-        ${line.translation ? `<div style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${line.translation}</div>` : ''}
+        <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(line.text)}${caret}</div>
+        ${line.translation ? `<div style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${escapeHTML(line.translation)}</div>` : ''}
       </div>
     </div>`;
 }
@@ -120,11 +128,11 @@ function renderLines() {
     const c = speakerColor(l.speakerId);
     return `<div style="border-left:2px solid ${c.bar};padding-left:11px;margin-bottom:13px;">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-        <span style="font-size:11.5px;font-weight:600;color:${c.text};">${speakerLabel(l.speakerId)}</span>
-        <span style="font-family:'Geist Mono',monospace;font-size:10px;color:oklch(0.72 0.01 270);">${l.timestamp}</span>
+        <span style="font-size:11.5px;font-weight:600;color:${c.text};">${escapeHTML(speakerLabel(l.speakerId))}</span>
+        <span style="font-family:'Geist Mono',monospace;font-size:10px;color:oklch(0.72 0.01 270);">${escapeHTML(l.timestamp)}</span>
       </div>
-      <div style="font-size:13px;line-height:1.45;color:oklch(0.3 0.015 280);">${l.text}</div>
-      <div style="font-size:12.5px;line-height:1.45;color:oklch(0.54 0.04 290);margin-top:2px;">${l.translation}</div>
+      <div style="font-size:13px;line-height:1.45;color:oklch(0.3 0.015 280);">${escapeHTML(l.text)}</div>
+      <div style="font-size:12.5px;line-height:1.45;color:oklch(0.54 0.04 290);margin-top:2px;">${escapeHTML(l.translation)}</div>
     </div>`;
   }).join('');
 }
@@ -134,20 +142,20 @@ function renderAnalysis(a) {
   $('actions-list').innerHTML = (a.actions || []).map((t) => `
     <div style="display:flex;gap:9px;align-items:flex-start;background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:9px;padding:10px 11px;">
       <span style="width:15px;height:15px;border-radius:4px;border:1.5px solid oklch(0.8 0.01 270);flex-shrink:0;margin-top:1px;"></span>
-      <span style="font-size:12.5px;line-height:1.45;color:oklch(0.38 0.02 280);">${t}</span>
+      <span style="font-size:12.5px;line-height:1.45;color:oklch(0.38 0.02 280);">${escapeHTML(t)}</span>
     </div>`).join('');
   $('replies-list').innerHTML = (a.replies || []).map((r) => `
     <div style="background:oklch(0.985 0.012 295);border:1px solid oklch(0.91 0.03 295);border-radius:9px;padding:10px 12px;">
-      <div style="font-size:11px;color:oklch(0.58 0.06 295);font-weight:600;margin-bottom:4px;">${r.q}</div>
-      <div style="font-size:12.5px;line-height:1.5;color:oklch(0.4 0.04 290);">${r.a}</div>
+      <div style="font-size:11px;color:oklch(0.58 0.06 295);font-weight:600;margin-bottom:4px;">${escapeHTML(r.q)}</div>
+      <div style="font-size:12.5px;line-height:1.5;color:oklch(0.4 0.04 290);">${escapeHTML(r.a)}</div>
     </div>`).join('');
 }
 
 function appendQaMessage(q, a) {
   const el = document.createElement('div');
   el.innerHTML = `
-    <div style="margin-bottom:6px;font-size:12.5px;color:oklch(0.42 0.1 295);font-weight:600;">❓ ${q}</div>
-    <div style="font-size:12.5px;line-height:1.5;color:oklch(0.38 0.02 280);background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:9px;padding:10px 12px;">${a}</div>`;
+    <div style="margin-bottom:6px;font-size:12.5px;color:oklch(0.42 0.1 295);font-weight:600;">❓ ${escapeHTML(q)}</div>
+    <div style="font-size:12.5px;line-height:1.5;color:oklch(0.38 0.02 280);background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:9px;padding:10px 12px;">${escapeHTML(a)}</div>`;
   $('qa-history').appendChild(el);
   el.scrollIntoView({ behavior: 'smooth' });
 }
