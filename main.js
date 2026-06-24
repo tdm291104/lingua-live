@@ -9,7 +9,6 @@ function createWindow() {
     width: 1080,
     height: 720,
     frame: false,
-    titleBarStyle: 'hidden',
     backgroundColor: '#f7f7f9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
