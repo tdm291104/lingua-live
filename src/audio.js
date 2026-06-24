@@ -19,8 +19,10 @@ function buildFFmpegArgs(sources) {
 }
 
 function start(sources, onChunk, onExit) {
+  stop(); // kill any existing process before starting a new one
   const args = buildFFmpegArgs(sources);
   ffmpegProcess = spawn('ffmpeg', args);
+  ffmpegProcess.stderr.resume(); // drain stderr so buffer never fills and blocks ffmpeg
   ffmpegProcess.stdout.on('data', onChunk);
   ffmpegProcess.on('close', onExit);
   return ffmpegProcess;
