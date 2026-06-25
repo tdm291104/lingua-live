@@ -15,5 +15,6 @@ contextBridge.exposeInMainWorld('api', {
   onQaAnswer:        (cb) => { ipcRenderer.removeAllListeners('qa:answer');          ipcRenderer.on('qa:answer',          (_, d) => cb(d)); },
   onConnectionStatus: (cb) => { ipcRenderer.removeAllListeners('status:connection');   ipcRenderer.on('status:connection',   (_, d) => cb(d)); },
   onSubtitleStreamStart: (cb) => { ipcRenderer.removeAllListeners('subtitle:stream:start'); ipcRenderer.on('subtitle:stream:start', (_, d) => cb(d)); },
+  onSubtitleStreamClear: (cb) => { ipcRenderer.removeAllListeners('subtitle:stream:clear'); ipcRenderer.on('subtitle:stream:clear', (_, d) => cb(d)); },
   onSubtitleToken:       (cb) => { ipcRenderer.removeAllListeners('subtitle:token');        ipcRenderer.on('subtitle:token',        (_, d) => cb(d)); },
 });

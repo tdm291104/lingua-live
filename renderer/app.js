@@ -227,6 +227,11 @@ window.api.onSubtitleStreamStart(() => {
   updateLiveLine(state.liveSpeakerId, state.liveText);
 });
 
+window.api.onSubtitleStreamClear(() => {
+  state.liveTranslation = '';
+  updateLiveLine(state.liveSpeakerId, state.liveText);
+});
+
 window.api.onSubtitleToken(({ token }) => {
   state.liveTranslation += token;
   updateLiveLine(state.liveSpeakerId, state.liveText);

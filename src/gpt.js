@@ -15,6 +15,17 @@ async function callGPT(apiKey, messages, temperature) {
   return data?.choices?.[0]?.message?.content || '';
 }
 
+const REFUSAL_PHRASES = ['không thể dịch', 'không có ngữ cảnh', 'cung cấp thêm', 'xin lỗi,', 'không đủ ngữ cảnh'];
+
+function isRefusal(translation, original) {
+  if (!translation) return false;
+  const lower = translation.toLowerCase();
+  if (REFUSAL_PHRASES.some((p) => lower.includes(p))) return true;
+  // response much longer than original and doesn't look like a translation
+  if (translation.length > original.length * 5 && translation.length > 80) return true;
+  return false;
+}
+
 async function translate(apiKey, text, lang, contextLines = []) {
   const langLabel = lang === 'ja' ? 'Japanese' : 'English';
   const ctx = contextLines.length
@@ -24,7 +35,7 @@ async function translate(apiKey, text, lang, contextLines = []) {
         .map((l) => `- ${l.text} → ${l.translation}`)
         .join('\n')
     : '';
-  return callGPT(
+  const result = await callGPT(
     apiKey,
     [
       { role: 'system', content: `Translate ${langLabel} to Vietnamese naturally. Return only the translation.${ctx}` },
@@ -32,6 +43,7 @@ async function translate(apiKey, text, lang, contextLines = []) {
     ],
     0.2
   );
+  return isRefusal(result, text) ? '' : result;
 }
 
 async function analyze(apiKey, transcriptLines) {
@@ -106,6 +118,7 @@ async function translateStreaming(apiKey, text, lang, contextLines = [], onToken
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = '';
+  let full = '';
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -116,16 +129,17 @@ async function translateStreaming(apiKey, text, lang, contextLines = [], onToken
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
-        if (data === '[DONE]') return;
+        if (data === '[DONE]') return full;
         try {
           const token = JSON.parse(data).choices?.[0]?.delta?.content;
-          if (token) onToken(token);
+          if (token) { full += token; onToken(token); }
         } catch {}
       }
     }
   } finally {
     reader.releaseLock();
   }
+  return full;
 }
 
-module.exports = { translate, translateStreaming, analyze, qa };
+module.exports = { translate, translateStreaming, analyze, qa, isRefusal };

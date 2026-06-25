@@ -2,12 +2,13 @@
 const { ipcMain } = require('electron');
 const audio = require('./audio');
 const { connect } = require('./deepgram');
-const { translate, translateStreaming, analyze, qa } = require('./gpt');
+const { translate, translateStreaming, analyze, qa, isRefusal } = require('./gpt');
 
 const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
 const OPENAI_KEY   = process.env.OPENAI_API_KEY;
 
-const MIN_WORDS = 2; // don't stream-translate single mora/word fragments
+const MIN_FINAL_WORDS     = 2; // skip single-mora finals entirely
+const MIN_STREAMING_WORDS = 3; // only stream-translate if 3+ words in interim
 
 let ws              = null;
 let transcriptLines = [];
@@ -45,7 +46,11 @@ function setup(mainWindow) {
       OPENAI_KEY, text, lang, transcriptLines.slice(-3),
       (token) => { if (!signal.aborted) send('subtitle:token', { token }); },
       signal
-    ).catch(() => {});
+    ).then((full) => {
+      if (full && !signal.aborted && isRefusal(full, text)) {
+        send('subtitle:stream:clear', {});
+      }
+    }).catch(() => {});
   }
 
   function openDeepgram(lang) {
@@ -56,13 +61,15 @@ function setup(mainWindow) {
       onInterim: (d) => {
         send('transcript:interim', d);
         const words = d.text.trim().split(/\s+/);
-        if (words.length >= MIN_WORDS && !isPunctOnly(d.text)) {
+        if (words.length >= MIN_STREAMING_WORDS && !isPunctOnly(d.text)) {
           startStreaming(cleanText(d.text, lang), lang);
         }
       },
       onFinal: async (d) => {
         cancelStreaming();
         if (isPunctOnly(d.text)) return;
+        const words = d.text.trim().split(/\s+/);
+        if (words.length < MIN_FINAL_WORDS) return;
         const text = cleanText(d.text, lang);
         try {
           const translation = await translate(OPENAI_KEY, text, lang, transcriptLines.slice(-5));
