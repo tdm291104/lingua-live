@@ -219,6 +219,24 @@ window.api.onFinal((line) => {
   $('session-date').textContent = line.timestamp;
 });
 
+window.api.onConnectionStatus(({ state: connState }) => {
+  if (!state.listening) return;
+  const label = $('status-label');
+  const pill  = $('status-pill');
+  const dot   = $('status-dot');
+  if (connState === 'reconnecting') {
+    label.textContent     = 'Đang kết nối lại…';
+    pill.style.background = 'oklch(0.97 0.03 50)';
+    dot.style.background  = 'oklch(0.75 0.14 50)';
+    dot.style.animation   = 'pulseDot 0.7s ease-in-out infinite';
+  } else if (connState === 'connected') {
+    label.textContent     = 'Đang nghe';
+    pill.style.background = 'oklch(0.97 0.025 295)';
+    dot.style.background  = 'oklch(0.62 0.18 295)';
+    dot.style.animation   = 'pulseDot 1.4s ease-in-out infinite';
+  }
+});
+
 window.api.onAnalysis((result) => {
   state.analysisLoading = false;
   $('btn-analyze').textContent = '✦ Cập nhật phân tích';

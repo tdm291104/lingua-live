@@ -7,7 +7,8 @@ const { translate, analyze, qa } = require('./gpt');
 const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
 const OPENAI_KEY   = process.env.OPENAI_API_KEY;
 
-const MERGE_WINDOW_MS = 1000; // buffer same-speaker segments within 1s
+const MERGE_WINDOW_MS = 500;
+const MAX_WORDS       = 20;
 
 let ws               = null;
 let transcriptLines  = [];
@@ -25,8 +26,9 @@ function setup(mainWindow) {
   const send = (ch, data) => mainWindow.webContents.send(ch, data);
 
   async function emitLine(speakerId, text, timestamp) {
+    const contextLines = transcriptLines.slice(-2);
     try {
-      const translation = await translate(OPENAI_KEY, text, currentLang);
+      const translation = await translate(OPENAI_KEY, text, currentLang, contextLines);
       const line = { speakerId, text, translation, timestamp };
       transcriptLines.push(line);
       send('transcript:final', line);
@@ -61,6 +63,10 @@ function setup(mainWindow) {
     if (pending[id]) {
       clearTimeout(pending[id].timer);
       pending[id].text += ' ' + d.text;
+      if (pending[id].text.trim().split(/\s+/).length >= MAX_WORDS) {
+        flushSpeaker(id);
+        return;
+      }
     } else {
       pending[id] = { text: d.text, timestamp: d.timestamp };
     }
@@ -71,10 +77,12 @@ function setup(mainWindow) {
     if (ws) { try { ws.close(); } catch {} ws = null; }
     const myId = ++connectionId;
     ws = connect(lang, DEEPGRAM_KEY, {
+      onOpen:   () => send('status:connection', { state: 'connected' }),
       onInterim: (d) => send('transcript:interim', d),
       onFinal: (d) => handleSegment(d),
       onClose: () => {
         if (shouldReconnect && connectionId === myId) {
+          send('status:connection', { state: 'reconnecting' });
           setTimeout(() => openDeepgram(currentLang), 1500);
         }
       },

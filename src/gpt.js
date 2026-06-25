@@ -15,12 +15,19 @@ async function callGPT(apiKey, messages, temperature) {
   return data?.choices?.[0]?.message?.content || '';
 }
 
-async function translate(apiKey, text, lang) {
+async function translate(apiKey, text, lang, contextLines = []) {
   const langLabel = lang === 'ja' ? 'Japanese' : 'English';
+  const ctx = contextLines.length
+    ? '\n\nContext (recent lines):\n' +
+      contextLines
+        .filter((l) => l.translation)
+        .map((l) => `- ${l.text} → ${l.translation}`)
+        .join('\n')
+    : '';
   return callGPT(
     apiKey,
     [
-      { role: 'system', content: `Translate ${langLabel} to Vietnamese naturally. Return only the translation.` },
+      { role: 'system', content: `Translate ${langLabel} to Vietnamese naturally. Return only the translation.${ctx}` },
       { role: 'user', content: text },
     ],
     0.2

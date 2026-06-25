@@ -34,13 +34,14 @@ function groupWordsBySpeaker(words) {
   return segments;
 }
 
-function connect(lang, apiKey, { onInterim, onFinal, onClose }) {
+function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
   const url = buildUrl(lang);
   const ws = new WebSocket(url, {
     headers: { Authorization: `Token ${apiKey}` },
   });
   let lastFinalHash = '';
 
+  ws.on('open', () => { if (onOpen) onOpen(); });
   ws.on('message', (msg) => {
     let data;
     try {
