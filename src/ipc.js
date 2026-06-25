@@ -7,8 +7,7 @@ const { translate, analyze, qa } = require('./gpt');
 const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
 const OPENAI_KEY   = process.env.OPENAI_API_KEY;
 
-const MERGE_WINDOW_MS = 500;
-const MAX_WORDS       = 20;
+const MAX_WORDS = 20;
 
 let ws               = null;
 let transcriptLines  = [];
@@ -22,11 +21,25 @@ function isPunctOnly(text) {
   return text.replace(/[。、！？\.!?,\s]/g, '').length === 0;
 }
 
+// Remove spaces between Japanese characters (Deepgram splits every mora with spaces)
+function cleanJapanese(text) {
+  return text.replace(/(?<=[　-鿿＀-￯])\s+(?=[　-鿿＀-￯])/g, '');
+}
+
+// Longer wait for very short segments — gives more time to accumulate context
+function mergeDelay(text) {
+  const words = text.trim().split(/\s+/).length;
+  if (words < 3)  return 2000;
+  if (words < 10) return 500;
+  return 200;
+}
+
 function setup(mainWindow) {
   const send = (ch, data) => mainWindow.webContents.send(ch, data);
 
-  async function emitLine(speakerId, text, timestamp) {
-    const contextLines = transcriptLines.slice(-2);
+  async function emitLine(speakerId, rawText, timestamp) {
+    const text = currentLang === 'ja' ? cleanJapanese(rawText) : rawText;
+    const contextLines = transcriptLines.slice(-5);
     try {
       const translation = await translate(OPENAI_KEY, text, currentLang, contextLines);
       const line = { speakerId, text, translation, timestamp };
@@ -70,7 +83,7 @@ function setup(mainWindow) {
     } else {
       pending[id] = { text: d.text, timestamp: d.timestamp };
     }
-    pending[id].timer = setTimeout(() => flushSpeaker(id), MERGE_WINDOW_MS);
+    pending[id].timer = setTimeout(() => flushSpeaker(id), mergeDelay(pending[id].text));
   }
 
   function openDeepgram(lang) {
