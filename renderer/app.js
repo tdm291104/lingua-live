@@ -29,6 +29,7 @@ const state = {
   analysisLoading: false,
   qaLoading: false,
   speakerNames: {},
+  liveTranslation: '',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -113,7 +114,7 @@ function committedLineHTML(line) {
     </div>`;
 }
 
-function liveLineHTML(speakerId, text) {
+function liveLineHTML(speakerId, text, translation) {
   const c = speakerColor(speakerId);
   const caret = `<span style="display:inline-block;width:2px;height:15px;background:oklch(0.62 0.18 295);margin-left:2px;vertical-align:-2px;" class="anim-caret"></span>`;
   return `
@@ -123,6 +124,7 @@ function liveLineHTML(speakerId, text) {
       </div>
       <div style="flex:1;border-left:2px solid oklch(0.62 0.18 295);padding-left:14px;">
         <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(text)}${caret}</div>
+        ${translation ? `<div style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${escapeHTML(translation)}</div>` : ''}
       </div>
     </div>`;
 }
@@ -137,7 +139,7 @@ function appendFinalLine(line) {
 }
 
 function updateLiveLine(speakerId, text) {
-  $('live-line').innerHTML = text ? liveLineHTML(speakerId, text) : '';
+  $('live-line').innerHTML = text ? liveLineHTML(speakerId, text, state.liveTranslation) : '';
   const c = $('lines-container');
   c.scrollTop = c.scrollHeight;
 }
@@ -214,9 +216,20 @@ window.api.onInterim(({ speakerId, text }) => {
 window.api.onFinal((line) => {
   state.lines.push(line);
   state.liveText = '';
+  state.liveTranslation = '';
   appendFinalLine(line);
   updateFloatLines();
   $('session-date').textContent = line.timestamp;
+});
+
+window.api.onSubtitleStreamStart(() => {
+  state.liveTranslation = '';
+  updateLiveLine(state.liveSpeakerId, state.liveText);
+});
+
+window.api.onSubtitleToken(({ token }) => {
+  state.liveTranslation += token;
+  updateLiveLine(state.liveSpeakerId, state.liveText);
 });
 
 window.api.onConnectionStatus(({ state: connState }) => {

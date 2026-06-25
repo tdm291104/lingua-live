@@ -2,97 +2,79 @@
 const { ipcMain } = require('electron');
 const audio = require('./audio');
 const { connect } = require('./deepgram');
-const { translate, analyze, qa } = require('./gpt');
+const { translate, translateStreaming, analyze, qa } = require('./gpt');
 
 const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
 const OPENAI_KEY   = process.env.OPENAI_API_KEY;
 
-const MAX_WORDS = 20;
+const MIN_WORDS = 2; // don't stream-translate single mora/word fragments
 
-let ws               = null;
-let transcriptLines  = [];
-let currentLang      = 'en';
-let currentSources   = { system: true, mic: true };
-let shouldReconnect  = false;
-let connectionId     = 0;
-let pending          = {}; // speakerId -> { timer, text, timestamp }
+let ws              = null;
+let transcriptLines = [];
+let currentLang     = 'en';
+let currentSources  = { system: true, mic: true };
+let shouldReconnect = false;
+let connectionId    = 0;
+let streamAbort     = null;
 
 function isPunctOnly(text) {
   return text.replace(/[。、！？\.!?,\s]/g, '').length === 0;
 }
 
-// Remove spaces between Japanese characters (Deepgram splits every mora with spaces)
 function cleanJapanese(text) {
   return text.replace(/(?<=[　-鿿＀-￯])\s+(?=[　-鿿＀-￯])/g, '');
 }
 
-// Longer wait for very short segments — gives more time to accumulate context
-function mergeDelay(text) {
-  const words = text.trim().split(/\s+/).length;
-  if (words < 3)  return 2000;
-  if (words < 10) return 500;
-  return 200;
+function cleanText(text, lang) {
+  return lang === 'ja' ? cleanJapanese(text) : text;
 }
 
 function setup(mainWindow) {
   const send = (ch, data) => mainWindow.webContents.send(ch, data);
 
-  async function emitLine(speakerId, rawText, timestamp) {
-    const text = currentLang === 'ja' ? cleanJapanese(rawText) : rawText;
-    const contextLines = transcriptLines.slice(-5);
-    try {
-      const translation = await translate(OPENAI_KEY, text, currentLang, contextLines);
-      const line = { speakerId, text, translation, timestamp };
-      transcriptLines.push(line);
-      send('transcript:final', line);
-    } catch {
-      const line = { speakerId, text, translation: '', timestamp };
-      transcriptLines.push(line);
-      send('transcript:final', line);
-    }
+  function cancelStreaming() {
+    if (streamAbort) { streamAbort.abort(); streamAbort = null; }
   }
 
-  function flushSpeaker(speakerId) {
-    const p = pending[speakerId];
-    if (!p) return;
-    clearTimeout(p.timer);
-    delete pending[speakerId];
-    emitLine(Number(speakerId), p.text, p.timestamp);
-  }
-
-  function flushAll() {
-    Object.keys(pending).forEach(flushSpeaker);
-  }
-
-  function resetPending() {
-    Object.values(pending).forEach((p) => clearTimeout(p.timer));
-    pending = {};
-  }
-
-  function handleSegment(d) {
-    if (isPunctOnly(d.text)) return;
-
-    const id = d.speakerId;
-    if (pending[id]) {
-      clearTimeout(pending[id].timer);
-      pending[id].text += ' ' + d.text;
-      if (pending[id].text.trim().split(/\s+/).length >= MAX_WORDS) {
-        flushSpeaker(id);
-        return;
-      }
-    } else {
-      pending[id] = { text: d.text, timestamp: d.timestamp };
-    }
-    pending[id].timer = setTimeout(() => flushSpeaker(id), mergeDelay(pending[id].text));
+  function startStreaming(text, lang) {
+    cancelStreaming();
+    streamAbort = new AbortController();
+    const { signal } = streamAbort;
+    send('subtitle:stream:start', {});
+    translateStreaming(
+      OPENAI_KEY, text, lang, transcriptLines.slice(-3),
+      (token) => { if (!signal.aborted) send('subtitle:token', { token }); },
+      signal
+    ).catch(() => {});
   }
 
   function openDeepgram(lang) {
     if (ws) { try { ws.close(); } catch {} ws = null; }
     const myId = ++connectionId;
     ws = connect(lang, DEEPGRAM_KEY, {
-      onOpen:   () => send('status:connection', { state: 'connected' }),
-      onInterim: (d) => send('transcript:interim', d),
-      onFinal: (d) => handleSegment(d),
+      onOpen: () => send('status:connection', { state: 'connected' }),
+      onInterim: (d) => {
+        send('transcript:interim', d);
+        const words = d.text.trim().split(/\s+/);
+        if (words.length >= MIN_WORDS && !isPunctOnly(d.text)) {
+          startStreaming(cleanText(d.text, lang), lang);
+        }
+      },
+      onFinal: async (d) => {
+        cancelStreaming();
+        if (isPunctOnly(d.text)) return;
+        const text = cleanText(d.text, lang);
+        try {
+          const translation = await translate(OPENAI_KEY, text, lang, transcriptLines.slice(-5));
+          const line = { ...d, text, translation };
+          transcriptLines.push(line);
+          send('transcript:final', line);
+        } catch {
+          const line = { ...d, text, translation: '' };
+          transcriptLines.push(line);
+          send('transcript:final', line);
+        }
+      },
       onClose: () => {
         if (shouldReconnect && connectionId === myId) {
           send('status:connection', { state: 'reconnecting' });
@@ -112,11 +94,11 @@ function setup(mainWindow) {
   }
 
   ipcMain.on('listen:start', (_, { sources, lang }) => {
-    transcriptLines  = [];
-    currentLang      = lang;
-    currentSources   = sources;
-    shouldReconnect  = true;
-    resetPending();
+    transcriptLines = [];
+    currentLang     = lang;
+    currentSources  = sources;
+    shouldReconnect = true;
+    cancelStreaming();
     openDeepgram(lang);
     restartAudio(sources);
     send('status:changed', { listening: true });
@@ -124,7 +106,7 @@ function setup(mainWindow) {
 
   ipcMain.on('listen:stop', () => {
     shouldReconnect = false;
-    flushAll();
+    cancelStreaming();
     audio.stop();
     if (ws) { try { ws.close(); } catch {} ws = null; }
     send('status:changed', { listening: false });
