@@ -7,16 +7,21 @@ const { translate, translateStreaming, analyze, qa, isRefusal } = require('./gpt
 const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
 const OPENAI_KEY   = process.env.OPENAI_API_KEY;
 
-const MIN_FINAL_WORDS     = 2; // skip single-mora finals entirely
-const MIN_STREAMING_WORDS = 3; // only stream-translate if 3+ words in interim
+const MIN_FINAL_WORDS     = 2;
+const MIN_STREAMING_WORDS = 3;
+const STREAM_DEBOUNCE_MS  = 200; // wait for interim to stabilise before starting GPT
+const CORRECTION_THRESHOLD = 0.7; // Dice coefficient — replace if < 70% word overlap
 
-let ws              = null;
-let transcriptLines = [];
-let currentLang     = 'en';
-let currentSources  = { system: true, mic: true };
-let shouldReconnect = false;
-let connectionId    = 0;
-let streamAbort     = null;
+let ws                   = null;
+let transcriptLines      = [];
+let currentLang          = 'en';
+let currentSources       = { system: true, mic: true };
+let shouldReconnect      = false;
+let connectionId         = 0;
+let streamAbort          = null;
+let streamingForText     = '';  // text the current GPT stream was started for
+let interimDebounce      = null;
+let lastStreamedTranslation = '';
 
 function isPunctOnly(text) {
   return text.replace(/[。、！？\.!?,\s]/g, '').length === 0;
@@ -30,27 +35,70 @@ function cleanText(text, lang) {
   return lang === 'ja' ? cleanJapanese(text) : text;
 }
 
+// Detect language from character set — works even when user selects wrong lang
+function detectLang(text, fallback) {
+  if (/[぀-ヿ一-鿿]/.test(text)) return 'ja';
+  if (/[a-zA-Z]{3,}/.test(text)) return 'en';
+  return fallback;
+}
+
+// Dice coefficient at word level: 0 = totally different, 1 = identical
+function diceSimilarity(a, b) {
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+  const wa = new Set(a.split(/\s+/));
+  const wb = new Set(b.split(/\s+/));
+  const common = [...wa].filter((w) => wb.has(w)).length;
+  return (2 * common) / (wa.size + wb.size);
+}
+
 function setup(mainWindow) {
   const send = (ch, data) => mainWindow.webContents.send(ch, data);
 
   function cancelStreaming() {
+    clearTimeout(interimDebounce);
+    interimDebounce = null;
     if (streamAbort) { streamAbort.abort(); streamAbort = null; }
+    streamingForText = '';
   }
 
   function startStreaming(text, lang) {
     cancelStreaming();
+    streamingForText = text;
     streamAbort = new AbortController();
     const { signal } = streamAbort;
     send('subtitle:stream:start', {});
+    lastStreamedTranslation = '';
     translateStreaming(
       OPENAI_KEY, text, lang, transcriptLines.slice(-3),
-      (token) => { if (!signal.aborted) send('subtitle:token', { token }); },
+      (token) => {
+        if (!signal.aborted) {
+          lastStreamedTranslation += token;
+          send('subtitle:token', { token });
+        }
+      },
       signal
     ).then((full) => {
       if (full && !signal.aborted && isRefusal(full, text)) {
         send('subtitle:stream:clear', {});
+        lastStreamedTranslation = '';
       }
     }).catch(() => {});
+  }
+
+  function scheduleStreaming(text, lang) {
+    const detectedLang = detectLang(text, lang);
+    const cleaned      = cleanText(text, detectedLang);
+
+    // If already streaming and new text only grew slightly — let stream continue
+    if (streamAbort && streamingForText) {
+      const prevWords = streamingForText.trim().split(/\s+/).length;
+      const newWords  = cleaned.trim().split(/\s+/).length;
+      if (newWords <= prevWords + 2) return;
+    }
+
+    clearTimeout(interimDebounce);
+    interimDebounce = setTimeout(() => startStreaming(cleaned, detectedLang), STREAM_DEBOUNCE_MS);
   }
 
   function openDeepgram(lang) {
@@ -60,26 +108,34 @@ function setup(mainWindow) {
       onOpen: () => send('status:connection', { state: 'connected' }),
       onInterim: (d) => {
         send('transcript:interim', d);
-        const words = d.text.trim().split(/\s+/);
-        if (words.length >= MIN_STREAMING_WORDS && !isPunctOnly(d.text)) {
-          startStreaming(cleanText(d.text, lang), lang);
+        const wordCount = d.text.trim().split(/\s+/).length;
+        if (wordCount >= MIN_STREAMING_WORDS && !isPunctOnly(d.text)) {
+          scheduleStreaming(d.text, lang);
         }
       },
       onFinal: async (d) => {
         cancelStreaming();
         if (isPunctOnly(d.text)) return;
-        const words = d.text.trim().split(/\s+/);
-        if (words.length < MIN_FINAL_WORDS) return;
-        const text = cleanText(d.text, lang);
+        if (d.text.trim().split(/\s+/).length < MIN_FINAL_WORDS) return;
+
+        const detectedLang = detectLang(d.text, lang);
+        const text = cleanText(d.text, detectedLang);
         try {
-          const translation = await translate(OPENAI_KEY, text, lang, transcriptLines.slice(-5));
+          const translation = await translate(OPENAI_KEY, text, detectedLang, transcriptLines.slice(-5));
           const line = { ...d, text, translation };
           transcriptLines.push(line);
           send('transcript:final', line);
+          // Send correction only if final translation differs significantly from streamed version
+          const similarity = diceSimilarity(lastStreamedTranslation, translation);
+          if (lastStreamedTranslation && similarity < CORRECTION_THRESHOLD) {
+            send('subtitle:correct', { translation });
+          }
+          lastStreamedTranslation = '';
         } catch {
           const line = { ...d, text, translation: '' };
           transcriptLines.push(line);
           send('transcript:final', line);
+          lastStreamedTranslation = '';
         }
       },
       onClose: () => {
@@ -101,10 +157,11 @@ function setup(mainWindow) {
   }
 
   ipcMain.on('listen:start', (_, { sources, lang }) => {
-    transcriptLines = [];
-    currentLang     = lang;
-    currentSources  = sources;
-    shouldReconnect = true;
+    transcriptLines      = [];
+    currentLang          = lang;
+    currentSources       = sources;
+    shouldReconnect      = true;
+    lastStreamedTranslation = '';
     cancelStreaming();
     openDeepgram(lang);
     restartAudio(sources);

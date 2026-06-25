@@ -109,7 +109,7 @@ function committedLineHTML(line) {
       </div>
       <div style="flex:1;border-left:2px solid ${c.bar};padding-left:14px;">
         <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(line.text)}</div>
-        ${line.translation ? `<div style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${escapeHTML(line.translation)}</div>` : ''}
+        ${line.translation ? `<div data-translation style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${escapeHTML(line.translation)}</div>` : ''}
       </div>
     </div>`;
 }
@@ -230,6 +230,19 @@ window.api.onSubtitleStreamStart(() => {
 window.api.onSubtitleStreamClear(() => {
   state.liveTranslation = '';
   updateLiveLine(state.liveSpeakerId, state.liveText);
+});
+
+window.api.onSubtitleCorrect(({ translation }) => {
+  // Update the translation div in the last committed line
+  const lines = $('committed-lines').querySelectorAll('[data-translation]');
+  const last = lines[lines.length - 1];
+  if (!last) return;
+  last.style.transition = 'opacity 0.15s';
+  last.style.opacity = '0';
+  setTimeout(() => {
+    last.textContent = translation;
+    last.style.opacity = '1';
+  }, 150);
 });
 
 window.api.onSubtitleToken(({ token }) => {
