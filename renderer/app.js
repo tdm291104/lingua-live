@@ -1,5 +1,3 @@
-// renderer/app.js
-
 function escapeHTML(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -81,7 +79,6 @@ function applyLangStyles() {
   });
 }
 
-// ── Transcript rendering (incremental — no full rebuilds on interim) ──
 function committedLineHTML(line) {
   return `
     <div class="anim-bubble" style="border-left:2px solid oklch(0.88 0.006 270);padding-left:14px;margin-bottom:18px;">

@@ -1,4 +1,3 @@
-// src/audio.js
 const { spawn } = require('child_process');
 
 let ffmpegProcess = null;
@@ -19,7 +18,7 @@ function buildFFmpegArgs(sources) {
 }
 
 function start(sources, onChunk, onExit) {
-  stop(); // kill any existing process before starting a new one
+  stop();
   const args = buildFFmpegArgs(sources);
   ffmpegProcess = spawn('ffmpeg', args);
   ffmpegProcess.stderr.resume(); // drain stderr so buffer never fills and blocks ffmpeg

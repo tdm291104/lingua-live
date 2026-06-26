@@ -1,15 +1,11 @@
-// src/openai-stt.js
 const WebSocket = require('ws');
 
 const WS_URL = 'wss://api.openai.com/v1/realtime?intent=transcription';
 
-const SPEECH_THRESHOLD = 500; // RMS amplitude (0–32767): above = speech
-const SILENCE_MS = 600; // ms of quiet before committing audio buffer
-
-// Sentence-ending punctuation for Japanese and English
+const SPEECH_THRESHOLD = 500;
+const SILENCE_MS = 600;
 const SENT_END = /[。！？!?]/;
 
-// audio.js outputs 16 kHz; OpenAI Realtime requires ≥ 24 kHz.
 function resample16to24(buf) {
   const inSamples  = buf.length / 2;
   const outSamples = Math.floor(inSamples * 3 / 2);
@@ -48,10 +44,9 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
     });
 
   const langCode = lang === 'ja' ? 'ja' : 'en';
-  const sep      = langCode === 'ja' ? '' : ' '; // Japanese has no word spaces
-  const partials = new Map(); // item_id → accumulated delta text
+  const sep      = langCode === 'ja' ? '' : ' ';
+  const partials = new Map();
 
-  // Sentence buffer: accumulate completed fragments until sentence boundary
   let sentBuf = '';
 
   function emitSentence(text) {
@@ -59,8 +54,6 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
     if (t) onFinal({ speakerId: 0, text: t, timestamp: timestamp() });
   }
 
-  // Split sentBuf at the last sentence-ending punct and emit the complete part.
-  // Keeps any trailing incomplete fragment in sentBuf for the next turn.
   function trySplit() {
     const match = sentBuf.match(/^([\s\S]+[。！？!?])\s*([\s\S]*)$/);
     if (!match) return;
@@ -76,7 +69,7 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
         audio: {
           input: {
             format: { type: 'audio/pcm', rate: 24000 },
-            // gpt-realtime-whisper: no server_vad — audio committed via client VAD below
+            // gpt-realtime-whisper has no server_vad — use client VAD below
             transcription: { model: 'gpt-realtime-whisper', language: langCode, delay: 'low' },
             turn_detection: null,
           },
@@ -105,7 +98,6 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
       const id      = data.item_id;
       const partial = (partials.get(id) || '') + (data.delta || '');
       partials.set(id, partial);
-      // Live line = sentence buffer so far + current partial
       const liveText = sentBuf ? sentBuf + sep + partial : partial;
       if (liveText) onInterim({ speakerId: 0, text: liveText, timestamp: ts });
       return;
@@ -117,7 +109,6 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
       const fragment = (data.transcript || '').trim();
       if (!fragment) return;
 
-      // Append fragment to sentence buffer
       sentBuf = sentBuf ? sentBuf + sep + fragment : fragment;
       if (SENT_END.test(sentBuf)) trySplit();
     }
@@ -134,7 +125,6 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
     try { ws.terminate(); } catch {}
   });
 
-  // Client-side VAD state
   let silenceTimer    = null;
   let bufferHasSpeech = false;
 

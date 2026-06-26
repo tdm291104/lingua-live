@@ -1,4 +1,3 @@
-// src/ipc.js
 const { ipcMain } = require('electron');
 const audio = require('./audio');
 const { connect } = require('./openai-stt');
@@ -34,14 +33,12 @@ function cleanText(text, lang) {
   return lang === 'ja' ? cleanJapanese(text) : text;
 }
 
-// Detect language from character set — works even when user selects wrong lang
 function detectLang(text, fallback) {
   if (/[぀-ヿ一-鿿]/.test(text)) return 'ja';
   if (/[a-zA-Z]{3,}/.test(text)) return 'en';
   return fallback;
 }
 
-// Dice coefficient at word level: 0 = totally different, 1 = identical
 function diceSimilarity(a, b) {
   if (!a && !b) return 1;
   if (!a || !b) return 0;
@@ -128,15 +125,12 @@ function setup(mainWindow) {
 
         const text = cleanText(d.text, detectedLang);
 
-        // Commit immediately so live line clears at the right moment,
-        // not 1s later when translation finishes.
         const lineIndex = transcriptLines.length;
         const line = { ...d, text, translation: '' };
         transcriptLines.push(line);
         send('transcript:final', line);
         lastStreamedTranslation = '';
 
-        // Translate async then patch the committed line in-place.
         try {
           const context = transcriptLines.slice(Math.max(0, lineIndex - 5), lineIndex);
           const translation = await translate(OPENAI_KEY, text, detectedLang, context);

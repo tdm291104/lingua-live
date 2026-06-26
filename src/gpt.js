@@ -1,4 +1,3 @@
-// src/gpt.js
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 async function callGPT(apiKey, messages, temperature) {
@@ -21,7 +20,6 @@ function isRefusal(translation, original) {
   if (!translation) return false;
   const lower = translation.toLowerCase();
   if (REFUSAL_PHRASES.some((p) => lower.includes(p))) return true;
-  // response much longer than original and doesn't look like a translation
   if (translation.length > original.length * 5 && translation.length > 80) return true;
   return false;
 }
