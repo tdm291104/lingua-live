@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="view-expanded state-idle">
+<body class="state-idle">
 
 <!-- ═══════════════════════════════════════════
      EXPANDED VIEW
@@ -30,8 +30,8 @@
       <span style="font-size:13px;font-weight:600;color:oklch(0.35 0.02 280);letter-spacing:-0.01em;">LinguaLive</span>
     </div>
     <div style="flex:1;"></div>
-    <button id="btn-collapse" class="no-drag" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;border:1px solid oklch(0.9 0.006 270);background:oklch(0.99 0.002 270);color:oklch(0.45 0.02 280);font-size:12px;font-weight:500;">
-      <span style="font-size:13px;">⤢</span> Thu gọn panel
+    <button id="btn-sidebar-toggle" class="no-drag" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;border:1px solid oklch(0.88 0.04 295);background:oklch(0.96 0.03 295);color:oklch(0.45 0.12 295);font-size:12px;font-weight:600;">
+      ✦ AI
     </button>
   </div>
 
@@ -72,7 +72,7 @@
   <div style="flex:1;display:flex;min-height:0;">
 
     <!-- Transcript column -->
-    <div class="ll-scroll" style="flex:1;overflow-y:auto;padding:22px 26px 40px;">
+    <div id="transcript-scroll" class="ll-scroll" style="flex:1;overflow-y:auto;padding:22px 26px 40px;">
 
       <!-- Idle state -->
       <div class="when-idle" style="height:100%;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;">
@@ -96,7 +96,7 @@
     </div>
 
     <!-- Sidebar -->
-    <div style="width:320px;flex-shrink:0;border-left:1px solid oklch(0.93 0.005 270);background:oklch(0.985 0.003 280);display:flex;flex-direction:column;">
+    <div id="sidebar" style="width:320px;flex-shrink:0;border-left:1px solid oklch(0.93 0.005 270);background:oklch(0.985 0.003 280);flex-direction:column;">
       <div style="padding:16px 18px 12px;border-bottom:1px solid oklch(0.93 0.005 270);">
         <div style="font-size:13.5px;font-weight:600;color:oklch(0.3 0.02 280);">Phân tích cuộc trò chuyện</div>
         <div id="sidebar-sub" style="font-size:12px;color:oklch(0.6 0.015 280);margin-top:3px;">Tạm dừng</div>
@@ -140,40 +140,6 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     FLOATING VIEW
-═══════════════════════════════════════════ -->
-<div id="view-floating" style="position:fixed;top:20px;right:20px;width:380px;flex-direction:column;background:oklch(0.995 0.002 270/0.96);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 24px 60px -12px oklch(0.4 0.04 280/0.4),0 0 0 1px oklch(0.9 0.006 270);overflow:hidden;">
-  <div class="drag-region" style="height:44px;display:flex;align-items:center;gap:9px;padding:0 10px 0 14px;border-bottom:1px solid oklch(0.94 0.005 270);">
-    <button id="btn-float-start-stop" class="no-drag" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 12px 0 11px;border-radius:8px;font-size:12px;font-weight:600;">
-      <span id="float-btn-icon" style="width:8px;height:8px;border-radius:50%;background:currentColor;display:block;"></span>
-      <span id="float-btn-label">Bắt đầu</span>
-    </button>
-    <span id="float-lang-label" class="no-drag" style="font-family:'Geist Mono',monospace;font-size:10.5px;color:oklch(0.65 0.015 280);">EN → VI</span>
-    <div style="flex:1;"></div>
-    <button id="btn-expand" class="no-drag" style="width:26px;height:26px;border-radius:7px;border:1px solid oklch(0.91 0.006 270);background:oklch(0.99 0.002 270);color:oklch(0.45 0.02 280);font-size:13px;display:flex;align-items:center;justify-content:center;">⤢</button>
-  </div>
-
-  <div class="when-idle" style="padding:28px 20px;text-align:center;flex-direction:column;">
-    <div style="font-size:13px;line-height:1.5;color:oklch(0.55 0.015 280);">Nhấn <span style="font-weight:600;color:oklch(0.5 0.12 295);">Bắt đầu</span> để nghe và dịch âm thanh máy + mic.</div>
-  </div>
-
-  <div class="when-listening ll-scroll" style="padding:14px 16px;flex-direction:column;gap:13px;max-height:280px;overflow-y:auto;">
-    <div id="float-lines"></div>
-    <div style="background:linear-gradient(180deg,oklch(0.985 0.02 295),oklch(0.975 0.024 295));border:1px solid oklch(0.9 0.04 295);border-radius:12px;padding:12px 13px;">
-      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
-        <div style="width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,oklch(0.78 0.13 295),oklch(0.64 0.17 290));display:flex;align-items:center;justify-content:center;">
-          <span style="color:#fff;font-size:11px;">✦</span>
-        </div>
-        <span style="font-size:11px;font-weight:700;color:oklch(0.52 0.13 295);text-transform:uppercase;letter-spacing:0.02em;">Câu hỏi nhanh</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        <button class="float-chip" data-q="Tóm tắt điểm chính của cuộc họp này?" style="width:100%;text-align:left;border:1px solid oklch(0.88 0.04 295);background:oklch(0.995 0.005 295);color:oklch(0.4 0.1 295);font-size:12.5px;font-weight:500;padding:9px 11px;border-radius:8px;line-height:1.4;">Tóm tắt điểm chính?</button>
-        <button class="float-chip" data-q="Những việc cần làm tiếp theo là gì?" style="width:100%;text-align:left;border:1px solid oklch(0.88 0.04 295);background:oklch(0.995 0.005 295);color:oklch(0.4 0.1 295);font-size:12.5px;font-weight:500;padding:9px 11px;border-radius:8px;line-height:1.4;">Việc cần làm tiếp theo?</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script src="app.js"></script>
 </body>

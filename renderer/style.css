@@ -19,11 +19,10 @@ body {
 .drag-region { -webkit-app-region: drag; }
 .no-drag     { -webkit-app-region: no-drag; }
 
-/* ── View toggle ── */
+/* ── Sidebar toggle ── */
 #view-expanded { display: flex; }
-#view-floating { display: none; }
-body.view-floating #view-expanded { display: none; }
-body.view-floating #view-floating { display: flex; }
+#sidebar { display: flex; }
+body.sidebar-hidden #sidebar { display: none; }
 
 /* ── State visibility ── */
 .when-idle      { display: none; }

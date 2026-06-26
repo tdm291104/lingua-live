@@ -1,11 +1,10 @@
 // src/ipc.js
 const { ipcMain } = require('electron');
 const audio = require('./audio');
-const { connect } = require('./deepgram');
+const { connect } = require('./openai-stt');
 const { translate, translateStreaming, analyze, qa, isRefusal } = require('./gpt');
 
-const DEEPGRAM_KEY = process.env.DEEPGRAM_API_KEY;
-const OPENAI_KEY   = process.env.OPENAI_API_KEY;
+const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
 const MIN_FINAL_WORDS     = 2;
 const MIN_STREAMING_WORDS = 3;
@@ -104,39 +103,48 @@ function setup(mainWindow) {
   function openDeepgram(lang) {
     if (ws) { try { ws.close(); } catch {} ws = null; }
     const myId = ++connectionId;
-    ws = connect(lang, DEEPGRAM_KEY, {
+    ws = connect(lang, OPENAI_KEY, {
       onOpen: () => send('status:connection', { state: 'connected' }),
       onInterim: (d) => {
         send('transcript:interim', d);
-        const wordCount = d.text.trim().split(/\s+/).length;
-        if (wordCount >= MIN_STREAMING_WORDS && !isPunctOnly(d.text)) {
+        const detectedLang = detectLang(d.text, lang);
+        const contentLen = detectedLang === 'ja'
+          ? d.text.trim().replace(/[\s。、！？\.!?,]/g, '').length
+          : d.text.trim().split(/\s+/).length;
+        if (contentLen >= MIN_STREAMING_WORDS && !isPunctOnly(d.text)) {
           scheduleStreaming(d.text, lang);
         }
       },
       onFinal: async (d) => {
         cancelStreaming();
         if (isPunctOnly(d.text)) return;
-        if (d.text.trim().split(/\s+/).length < MIN_FINAL_WORDS) return;
 
         const detectedLang = detectLang(d.text, lang);
+        // Japanese has no word spaces — count non-punct chars; English counts words
+        const contentLen = detectedLang === 'ja'
+          ? d.text.trim().replace(/[\s。、！？\.!?,]/g, '').length
+          : d.text.trim().split(/\s+/).length;
+        if (contentLen < MIN_FINAL_WORDS) return;
+
         const text = cleanText(d.text, detectedLang);
+
+        // Commit immediately so live line clears at the right moment,
+        // not 1s later when translation finishes.
+        const lineIndex = transcriptLines.length;
+        const line = { ...d, text, translation: '' };
+        transcriptLines.push(line);
+        send('transcript:final', line);
+        lastStreamedTranslation = '';
+
+        // Translate async then patch the committed line in-place.
         try {
-          const translation = await translate(OPENAI_KEY, text, detectedLang, transcriptLines.slice(-5));
-          const line = { ...d, text, translation };
-          transcriptLines.push(line);
-          send('transcript:final', line);
-          // Send correction only if final translation differs significantly from streamed version
-          const similarity = diceSimilarity(lastStreamedTranslation, translation);
-          if (lastStreamedTranslation && similarity < CORRECTION_THRESHOLD) {
-            send('subtitle:correct', { translation });
+          const context = transcriptLines.slice(Math.max(0, lineIndex - 5), lineIndex);
+          const translation = await translate(OPENAI_KEY, text, detectedLang, context);
+          if (translation) {
+            transcriptLines[lineIndex].translation = translation;
+            send('subtitle:correct', { translation, lineIndex });
           }
-          lastStreamedTranslation = '';
-        } catch {
-          const line = { ...d, text, translation: '' };
-          transcriptLines.push(line);
-          send('transcript:final', line);
-          lastStreamedTranslation = '';
-        }
+        } catch {}
       },
       onClose: () => {
         if (shouldReconnect && connectionId === myId) {
