@@ -97,43 +97,28 @@
 
     <!-- Sidebar -->
     <div id="sidebar" style="width:320px;flex-shrink:0;border-left:1px solid oklch(0.93 0.005 270);background:oklch(0.985 0.003 280);flex-direction:column;">
-      <div style="padding:16px 18px 12px;border-bottom:1px solid oklch(0.93 0.005 270);">
-        <div style="font-size:13.5px;font-weight:600;color:oklch(0.3 0.02 280);">Phân tích cuộc trò chuyện</div>
+
+      <!-- Header -->
+      <div style="padding:14px 18px 12px;border-bottom:1px solid oklch(0.93 0.005 270);flex-shrink:0;">
+        <div style="font-size:13.5px;font-weight:600;color:oklch(0.3 0.02 280);">✦ Trợ lý AI</div>
         <div id="sidebar-sub" style="font-size:12px;color:oklch(0.6 0.015 280);margin-top:3px;">Tạm dừng</div>
       </div>
 
-      <!-- Sidebar idle -->
-      <div class="when-idle" style="flex:1;flex-direction:column;align-items:center;justify-content:center;padding:0 28px;text-align:center;">
-        <span style="font-size:22px;color:oklch(0.7 0.04 295);">✦</span>
-        <div style="font-size:12.5px;line-height:1.55;color:oklch(0.6 0.015 280);margin-top:10px;">Tóm tắt mạch chuyện, việc cần làm và gợi ý sẽ hiện ở đây khi phiên bắt đầu.</div>
+      <!-- Chat history -->
+      <div id="chat-history" class="ll-scroll" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;"></div>
+
+      <!-- Quick chips -->
+      <div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;">
+        <button class="ai-chip" data-q="Tôi đang bị hỏi gì?">Đang hỏi gì?</button>
+        <button class="ai-chip" data-q="Bây giờ tôi nên nói gì?">Nên nói gì?</button>
+        <button class="ai-chip" data-q="Tóm tắt cuộc trò chuyện">Tóm tắt</button>
       </div>
 
-      <!-- Sidebar live -->
-      <div class="when-listening ll-scroll" id="sidebar-live" style="flex:1;overflow-y:auto;padding:16px 18px;flex-direction:column;gap:18px;">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:9px;">Mạch chính</div>
-          <div id="summary-text" style="font-size:13px;line-height:1.55;color:oklch(0.4 0.02 280);background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:10px;padding:12px 13px;">Chưa có tóm tắt. Nhấn <strong>Cập nhật</strong> để phân tích.</div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:9px;">Việc cần làm</div>
-          <div id="actions-list" style="display:flex;flex-direction:column;gap:7px;"></div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:9px;">Nếu bạn được hỏi</div>
-          <div id="replies-list" style="display:flex;flex-direction:column;gap:7px;"></div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:9px;">Lịch sử hỏi đáp</div>
-          <div id="qa-history" style="display:flex;flex-direction:column;gap:10px;"></div>
-        </div>
-        <button id="btn-analyze" style="width:100%;height:36px;border-radius:9px;border:1px solid oklch(0.88 0.04 295);background:oklch(0.985 0.012 295);color:oklch(0.42 0.1 295);font-size:12.5px;font-weight:600;">✦ Cập nhật phân tích</button>
-      </div>
-
-      <!-- Q&A input -->
-      <div style="padding:12px 16px 16px;border-top:1px solid oklch(0.93 0.005 270);">
-        <div style="display:flex;align-items:center;gap:8px;height:40px;background:oklch(0.995 0.002 270);border:1px solid oklch(0.9 0.006 270);border-radius:10px;padding:0 6px 0 13px;">
-          <input id="qa-input" placeholder="Hỏi về nội dung đã nói…" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;">
-          <button id="qa-submit" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;">↑</button>
+      <!-- Input -->
+      <div style="padding:0 14px 16px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;min-height:40px;background:oklch(0.995 0.002 270);border:1px solid oklch(0.9 0.006 270);border-radius:10px;padding:6px 6px 6px 13px;">
+          <input id="chat-input" placeholder="Hỏi về cuộc trò chuyện…" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;">
+          <button id="chat-submit" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
         </div>
       </div>
     </div>

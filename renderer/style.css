@@ -52,6 +52,22 @@ body.state-listening .when-listening { display: flex; }
 .anim-caret  { animation: caret 1s step-end infinite; }
 .anim-dot    { animation: pulseDot 1.4s ease-in-out infinite; }
 
+/* ── AI chips ── */
+.ai-chip {
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid oklch(0.88 0.04 295);
+  background: oklch(0.985 0.012 295);
+  color: oklch(0.45 0.1 295);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.1s, border-color 0.1s;
+}
+.ai-chip:hover {
+  background: oklch(0.96 0.04 295);
+  border-color: oklch(0.82 0.07 295);
+}
+
 /* ── Text selection ── */
 #committed-lines, #live-line { user-select: text; -webkit-user-select: text; }
 

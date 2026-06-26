@@ -2,7 +2,7 @@
 const { ipcMain } = require('electron');
 const audio = require('./audio');
 const { connect } = require('./openai-stt');
-const { translate, translateStreaming, analyze, qa, isRefusal } = require('./gpt');
+const { translate, translateStreaming, chat, isRefusal } = require('./gpt');
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
@@ -194,22 +194,18 @@ function setup(mainWindow) {
     if (ws) restartAudio(sources);
   });
 
-  ipcMain.on('analyze:request', async () => {
+  ipcMain.on('ai:chat', async (_, { message }) => {
+    const abort = new AbortController();
     try {
-      const result = await analyze(OPENAI_KEY, transcriptLines);
-      send('analysis:result', result);
-    } catch {
-      send('analysis:result', { summary: '', actions: [], replies: [] });
-    }
-  });
-
-  ipcMain.on('qa:ask', async (_, { question }) => {
-    try {
-      const answer = await qa(OPENAI_KEY, question, transcriptLines);
-      send('qa:answer', { answer });
-    } catch {
-      send('qa:answer', { answer: 'Lỗi kết nối — thử lại.' });
-    }
+      await chat(
+        OPENAI_KEY,
+        message,
+        transcriptLines,
+        (token) => send('ai:token', { token }),
+        abort.signal,
+      );
+    } catch {}
+    send('ai:done', {});
   });
 }
 

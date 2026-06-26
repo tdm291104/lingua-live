@@ -16,8 +16,6 @@ const state = {
   sources: { system: true, mic: true },
   lines: [],
   liveText: '',
-  analysisLoading: false,
-  qaLoading: false,
   liveTranslation: '',
 };
 
@@ -122,27 +120,31 @@ function updateLiveLine(text) {
 }
 
 
-function renderAnalysis(a) {
-  $('summary-text').textContent = a.summary || 'Chưa có tóm tắt.';
-  $('actions-list').innerHTML = (a.actions || []).map((t) => `
-    <div style="display:flex;gap:9px;align-items:flex-start;background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:9px;padding:10px 11px;">
-      <span style="width:15px;height:15px;border-radius:4px;border:1.5px solid oklch(0.8 0.01 270);flex-shrink:0;margin-top:1px;"></span>
-      <span style="font-size:12.5px;line-height:1.45;color:oklch(0.38 0.02 280);">${escapeHTML(t)}</span>
-    </div>`).join('');
-  $('replies-list').innerHTML = (a.replies || []).map((r) => `
-    <div style="background:oklch(0.985 0.012 295);border:1px solid oklch(0.91 0.03 295);border-radius:9px;padding:10px 12px;">
-      <div style="font-size:11px;color:oklch(0.58 0.06 295);font-weight:600;margin-bottom:4px;">${escapeHTML(r.q)}</div>
-      <div style="font-size:12.5px;line-height:1.5;color:oklch(0.4 0.04 290);">${escapeHTML(r.a)}</div>
-    </div>`).join('');
+// ── Chat UI ──
+let chatTyping = null;
+
+function chatScrollToBottom() {
+  const c = $('chat-history');
+  c.scrollTop = c.scrollHeight;
 }
 
-function appendQaMessage(q, a) {
+function appendUserBubble(text) {
   const el = document.createElement('div');
+  el.style.cssText = 'display:flex;justify-content:flex-end;';
+  el.innerHTML = `<div style="background:oklch(0.96 0.03 295);border:1px solid oklch(0.88 0.05 295);border-radius:12px 12px 2px 12px;padding:9px 12px;max-width:85%;font-size:13px;color:oklch(0.38 0.1 295);line-height:1.45;">${escapeHTML(text)}</div>`;
+  $('chat-history').appendChild(el);
+  chatScrollToBottom();
+}
+
+function appendAiBubble() {
+  const el = document.createElement('div');
+  el.style.cssText = 'display:flex;align-items:flex-start;gap:8px;';
   el.innerHTML = `
-    <div style="margin-bottom:6px;font-size:12.5px;color:oklch(0.42 0.1 295);font-weight:600;">❓ ${escapeHTML(q)}</div>
-    <div style="font-size:12.5px;line-height:1.5;color:oklch(0.38 0.02 280);background:oklch(0.995 0.002 270);border:1px solid oklch(0.93 0.005 270);border-radius:9px;padding:10px 12px;">${escapeHTML(a)}</div>`;
-  $('qa-history').appendChild(el);
-  el.scrollIntoView({ behavior: 'smooth' });
+    <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">✦</div>
+    <div class="ai-bubble-text" style="background:oklch(0.995 0.002 270);border:1px solid oklch(0.91 0.005 270);border-radius:2px 12px 12px 12px;padding:9px 12px;font-size:13px;line-height:1.55;color:oklch(0.35 0.015 280);white-space:pre-wrap;"></div>`;
+  $('chat-history').appendChild(el);
+  chatScrollToBottom();
+  return el.querySelector('.ai-bubble-text');
 }
 
 // ── IPC subscriptions ──
@@ -217,21 +219,17 @@ window.api.onConnectionStatus(({ state: connState }) => {
   }
 });
 
-window.api.onAnalysis((result) => {
-  state.analysisLoading = false;
-  $('btn-analyze').textContent = '✦ Cập nhật phân tích';
-  $('btn-analyze').disabled    = false;
-  renderAnalysis(result);
+window.api.onChatToken(({ token }) => {
+  if (!chatTyping) chatTyping = appendAiBubble();
+  chatTyping.textContent += token;
+  chatScrollToBottom();
 });
 
-window.api.onQaAnswer(({ answer }) => {
-  state.qaLoading = false;
-  const q = $('qa-input').dataset.lastQ || '';
-  $('qa-input').value           = '';
-  $('qa-input').dataset.lastQ   = '';
-  $('qa-submit').textContent    = '↑';
-  $('qa-submit').disabled       = false;
-  appendQaMessage(q, answer);
+window.api.onChatDone(() => {
+  chatTyping = null;
+  $('chat-submit').textContent = '↑';
+  $('chat-submit').disabled    = false;
+  $('chat-input').disabled     = false;
 });
 
 // ── Controls ──
@@ -266,25 +264,22 @@ document.querySelectorAll('.lang-btn').forEach((btn) => {
   });
 });
 
-$('btn-analyze').addEventListener('click', () => {
-  if (state.analysisLoading) return;
-  state.analysisLoading = true;
-  $('btn-analyze').textContent = '⏳ Đang phân tích…';
-  $('btn-analyze').disabled    = true;
-  window.api.requestAnalysis();
-});
-
-function submitQa() {
-  const q = $('qa-input').value.trim();
-  if (!q || state.qaLoading) return;
-  state.qaLoading              = true;
-  $('qa-input').dataset.lastQ  = q;
-  $('qa-submit').textContent   = '⏳';
-  $('qa-submit').disabled      = true;
-  window.api.ask(q);
+function submitChat(message) {
+  const q = (message ?? $('chat-input').value).trim();
+  if (!q || $('chat-submit').disabled) return;
+  $('chat-input').value        = '';
+  $('chat-submit').textContent = '⏳';
+  $('chat-submit').disabled    = true;
+  $('chat-input').disabled     = true;
+  appendUserBubble(q);
+  window.api.chat(q);
 }
-$('qa-submit').addEventListener('click', submitQa);
-$('qa-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitQa(); });
+$('chat-submit').addEventListener('click', () => submitChat());
+$('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitChat(); });
+
+document.querySelectorAll('.ai-chip').forEach((btn) => {
+  btn.addEventListener('click', () => submitChat(btn.dataset.q));
+});
 
 // ── Initial render ──
 applyListeningState();
