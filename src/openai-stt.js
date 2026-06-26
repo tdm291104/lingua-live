@@ -4,7 +4,7 @@ const WS_URL = 'wss://api.openai.com/v1/realtime?intent=transcription';
 
 const SPEECH_THRESHOLD = 500;
 const SILENCE_MS = 600;
-const SENT_END = /[。！？!?]/;
+const SENT_END = /[。！？!?.]/;
 
 function resample16to24(buf) {
   const inSamples  = buf.length / 2;
@@ -55,7 +55,7 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
   }
 
   function trySplit() {
-    const match = sentBuf.match(/^([\s\S]+[。！？!?])\s*([\s\S]*)$/);
+    const match = sentBuf.match(/^([\s\S]+[。！？!?.])\s*([\s\S]*)$/);
     if (!match) return;
     sentBuf = match[2].trim();
     emitSentence(match[1]);

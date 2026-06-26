@@ -195,6 +195,7 @@ function setup(mainWindow) {
         OPENAI_KEY,
         message,
         transcriptLines,
+        currentLang,
         (token) => send('ai:token', { token }),
         abort.signal,
       );

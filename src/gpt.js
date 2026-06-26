@@ -44,19 +44,23 @@ async function translate(apiKey, text, lang, contextLines = []) {
   return isRefusal(result, text) ? '' : result;
 }
 
-async function chat(apiKey, message, transcriptLines, onToken, signal) {
+async function chat(apiKey, message, transcriptLines, lang, onToken, signal) {
   const history = transcriptLines
     .slice(-10)
     .map((l) => `[${l.timestamp}] ${l.text}`)
     .join('\n');
 
+  const langLabel = lang === 'ja' ? 'tiếng Nhật' : 'tiếng Anh';
+
   const system = `Bạn là trợ lý hỗ trợ cuộc trò chuyện thời gian thực, giúp người dùng xử lý hội thoại đang diễn ra.
+
+Ngôn ngữ cuộc họp: ${langLabel}
 
 Transcript gần đây (mới nhất ở cuối):
 ${history || '(Chưa có nội dung)'}
 
-## QUAN TRỌNG: Xác định ngôn ngữ cuộc họp
-Dựa vào transcript, xác định ngôn ngữ chính đang dùng. Khi đưa ra gợi ý câu nói, PHẢI dùng đúng ngôn ngữ đó (không dịch sang tiếng Việt). Phần giải thích/phân tích vẫn viết bằng tiếng Việt.
+## QUAN TRỌNG: Ngôn ngữ gợi ý
+Khi đưa ra gợi ý câu nói, PHẢI dùng đúng ngôn ngữ cuộc họp (${langLabel}), không dịch sang tiếng Việt. Phần giải thích/phân tích vẫn viết bằng tiếng Việt.
 
 ## Nhiệm vụ
 - Khi được hỏi đang bị hỏi gì → xác định câu hỏi gần nhất hướng đến người dùng và giải thích rõ bằng tiếng Việt
