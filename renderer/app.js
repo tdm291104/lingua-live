@@ -105,6 +105,7 @@ function renderLangLists() {
     state.lang = c;
     applyLangPickerButton();
     window.api.changeLang(state.lang);
+    if (activeTab === 'phrases') renderPhrases();
   });
   buildList('lang-tgt-list', TGT_LANGS, state.targetLang, (c) => {
     state.targetLang = c;
@@ -320,8 +321,43 @@ document.querySelectorAll('.ai-chip').forEach((btn) => {
   btn.addEventListener('click', () => submitChat(btn.dataset.q));
 });
 
+// ── Phrases panel ──
+function renderPhrases() {
+  const container = $('panel-phrases');
+  const list = PHRASES[state.lang];
+  if (!list) {
+    container.innerHTML = `<div style="font-size:13px;color:oklch(0.6 0.015 280);padding:20px 4px;">Chưa có câu sẵn cho ngôn ngữ này.</div>`;
+    return;
+  }
+  container.innerHTML = list.map((group) => `
+    <div style="margin-bottom:18px;">
+      <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid oklch(0.93 0.005 270);">${group.category}</div>
+      ${group.items.map((item, i) => `
+        <div style="padding:6px 0;${i < group.items.length - 1 ? 'border-bottom:1px solid oklch(0.95 0.003 270);' : ''}">
+          <div style="font-size:13px;font-weight:500;color:oklch(0.28 0.015 280);line-height:1.45;">${escapeHTML(item.phrase)}</div>
+          <div style="font-size:11.5px;color:oklch(0.55 0.04 290);margin-top:1px;line-height:1.4;">${escapeHTML(item.meaning)}</div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── Sidebar tabs ──
+let activeTab = 'chat';
+
+function switchTab(tab) {
+  activeTab = tab;
+  $('panel-chat').style.display    = tab === 'chat'    ? 'flex'   : 'none';
+  $('panel-phrases').style.display = tab === 'phrases' ? 'block'  : 'none';
+  $('tab-chat').classList.toggle('sidebar-tab-active',    tab === 'chat');
+  $('tab-phrases').classList.toggle('sidebar-tab-active', tab === 'phrases');
+  if (tab === 'phrases') renderPhrases();
+}
+
+$('tab-chat').addEventListener('click',    () => switchTab('chat'));
+$('tab-phrases').addEventListener('click', () => switchTab('phrases'));
+
 // ── Initial render ──
 applyListeningState();
 applySourceStyles();
 applyLangPickerButton();
 applySidebarState();
+switchTab('chat');

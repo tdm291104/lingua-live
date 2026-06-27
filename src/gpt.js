@@ -95,9 +95,21 @@ const STYLE_GUIDE = {
 - いかがでしょうか？(Ikaga deshou ka?) — Anh/chị nghĩ sao ạ?
 - 何かご意見はございますか？(Nanika goiken wa gozaimasu ka?) — Có ý kiến gì không ạ?
 
+**Tiểu từ cuối câu (終助詞) — dùng đúng particle để nghe tự nhiên:**
+Chỉ dùng ね và よね trong business (丁寧体). Tuyệt đối KHÔNG dùng な、ぞ、ぜ、わ trong cuộc họp.
+
+| Particle | Khi nào dùng | Ví dụ |
+|---|---|---|
+| ね | Tìm đồng ý, tạo kết nối — dùng thoải mái | そうですね。/ いいですね。 |
+| よ | Thông báo thông tin MỚI cho người nghe — dùng cẩn thận, tránh dùng với điều họ đã biết (nghe có vẻ dạy đời) | 明日の会議は3時ですよ。 |
+| よね | An toàn nhất — khá chắc nhưng muốn xác nhận | ご確認いただけましたよね？ |
+| な / ぞ / ぜ | ❌ Quá thô/masculine — KHÔNG dùng trong cuộc họp | — |
+
+Khi gợi ý câu, hãy thêm particle phù hợp vào cuối để câu tự nhiên hơn. Ví dụ: 「いいですね」nghe tự nhiên hơn 「いいです」.
+
 ### Định dạng gợi ý
 Mỗi câu gợi ý trình bày:
-「[câu tiếng Nhật bằng keigo phù hợp]」
+「[câu tiếng Nhật bằng keigo + particle phù hợp]」
 読み方：[romaji phiên âm đầy đủ]
 意味：[nghĩa tiếng Việt ngắn gọn]
 💡 [ghi chú ngắn khi nào/tại sao dùng câu này — nếu cần]`,
