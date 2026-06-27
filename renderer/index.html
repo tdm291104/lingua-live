@@ -37,34 +37,54 @@
 
   <!-- Controls row -->
   <div style="height:58px;display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid oklch(0.94 0.005 270);flex-shrink:0;">
-    <button id="btn-start-stop" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 16px 0 14px;border-radius:10px;font-size:13px;font-weight:600;transition:all 0.15s;">
+
+    <!-- Start/Stop -->
+    <button id="btn-start-stop" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 15px 0 13px;border-radius:10px;font-size:13px;font-weight:600;transition:all 0.15s;">
       <span id="btn-icon" style="width:9px;height:9px;border-radius:50%;background:currentColor;display:block;"></span>
       <span id="btn-label">Bắt đầu</span>
+      <span id="btn-eq-section" style="display:none;align-items:center;gap:2px;">
+        <span style="width:1px;height:16px;background:currentColor;opacity:0.25;margin:0 4px;flex-shrink:0;"></span>
+        <span style="width:2.5px;background:currentColor;border-radius:2px;display:block;animation:barEq 0.9s ease-in-out 0s infinite;"></span>
+        <span style="width:2.5px;background:currentColor;border-radius:2px;display:block;animation:barEq 0.9s ease-in-out 0.15s infinite;"></span>
+        <span style="width:2.5px;background:currentColor;border-radius:2px;display:block;animation:barEq 0.9s ease-in-out 0.3s infinite;"></span>
+        <span style="width:2.5px;background:currentColor;border-radius:2px;display:block;animation:barEq 0.9s ease-in-out 0.45s infinite;"></span>
+      </span>
     </button>
 
-    <div id="status-pill" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 13px;border-radius:10px;">
-      <span id="status-dot" style="width:8px;height:8px;border-radius:50%;display:block;background:oklch(0.75 0.01 270);"></span>
-      <span id="status-label" style="font-size:12.5px;font-weight:600;color:oklch(0.58 0.015 280);">Đã dừng</span>
-      <div id="status-bars" style="display:none;align-items:flex-end;gap:2px;height:16px;margin-left:2px;">
-        <span style="width:2.5px;background:oklch(0.66 0.15 295);border-radius:2px;animation:barEq 0.9s ease-in-out infinite;display:block;"></span>
-        <span style="width:2.5px;background:oklch(0.66 0.15 295);border-radius:2px;animation:barEq 0.9s ease-in-out 0.15s infinite;display:block;"></span>
-        <span style="width:2.5px;background:oklch(0.66 0.15 295);border-radius:2px;animation:barEq 0.9s ease-in-out 0.3s infinite;display:block;"></span>
-        <span style="width:2.5px;background:oklch(0.66 0.15 295);border-radius:2px;animation:barEq 0.9s ease-in-out 0.45s infinite;display:block;"></span>
-      </div>
+    <!-- Source segmented group -->
+    <div style="display:flex;align-items:center;height:38px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);overflow:hidden;">
+      <button id="btn-sys" data-source="system" style="display:flex;align-items:center;gap:6px;height:100%;padding:0 12px;border:none;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;">
+        <span style="font-size:14px;">🔊</span><span>Máy</span>
+      </button>
+      <div style="width:1px;height:20px;background:oklch(0.91 0.006 270);flex-shrink:0;"></div>
+      <button id="btn-mic" data-source="mic" style="display:flex;align-items:center;gap:6px;height:100%;padding:0 12px;border:none;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;">
+        <span style="font-size:14px;">🎙</span><span>Mic</span>
+      </button>
     </div>
-
-    <button id="btn-sys" data-source="system" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;border-radius:10px;font-size:12.5px;font-weight:500;border:1px solid oklch(0.85 0.05 295);background:oklch(0.96 0.03 295);color:oklch(0.45 0.12 295);">
-      <span>🔊</span> Âm thanh máy
-    </button>
-    <button id="btn-mic" data-source="mic" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;border-radius:10px;font-size:12.5px;font-weight:500;border:1px solid oklch(0.85 0.05 295);background:oklch(0.96 0.03 295);color:oklch(0.45 0.12 295);">
-      <span>🎙</span> Mic
-    </button>
 
     <div style="flex:1;"></div>
 
-    <div style="display:flex;align-items:center;height:38px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);overflow:hidden;">
-      <button class="lang-btn" data-lang="en" style="height:38px;padding:0 13px;font-size:12.5px;font-weight:600;background:oklch(0.96 0.03 295);color:oklch(0.45 0.12 295);">EN → VI</button>
-      <button class="lang-btn" data-lang="ja" style="height:38px;padding:0 13px;font-size:12.5px;font-weight:500;border-left:1px solid oklch(0.91 0.006 270);background:oklch(0.99 0.002 270);color:oklch(0.5 0.02 280);">JA → VI</button>
+    <!-- Language picker -->
+    <div id="lang-picker-wrap" style="position:relative;">
+      <button id="btn-lang-picker" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 11px 0 12px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);background:oklch(0.99 0.002 270);font-family:inherit;cursor:pointer;transition:background 0.1s,border-color 0.1s;">
+        <span id="lang-src-flag" style="font-size:14px;line-height:1;">🇬🇧</span>
+        <span id="lang-src-code" style="font-size:12.5px;font-weight:600;color:oklch(0.4 0.04 290);">EN</span>
+        <span style="font-size:12px;color:oklch(0.7 0.02 280);">→</span>
+        <span id="lang-tgt-flag" style="font-size:14px;line-height:1;">🇻🇳</span>
+        <span id="lang-tgt-code" style="font-size:12.5px;font-weight:600;color:oklch(0.4 0.04 290);">VI</span>
+        <span id="lang-chevron" style="font-size:10px;color:oklch(0.6 0.02 280);margin-left:1px;display:inline-block;transition:transform 0.15s;">▾</span>
+      </button>
+      <div id="lang-popover" style="display:none;position:absolute;top:44px;right:0;z-index:50;width:340px;background:oklch(0.997 0.001 270);border:1px solid oklch(0.9 0.006 270);border-radius:13px;box-shadow:0 18px 44px -12px oklch(0.4 0.04 280/0.32);padding:6px;flex-direction:row;gap:4px;">
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Ngôn ngữ nghe</div>
+          <div id="lang-src-list" class="ll-scroll" style="display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto;"></div>
+        </div>
+        <div style="width:1px;background:oklch(0.94 0.005 270);margin:8px 2px;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Dịch sang</div>
+          <div id="lang-tgt-list" class="ll-scroll" style="display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto;"></div>
+        </div>
+      </div>
     </div>
   </div>
 

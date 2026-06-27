@@ -43,8 +43,8 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
       hour: '2-digit', minute: '2-digit', second: '2-digit',
     });
 
-  const langCode = lang === 'ja' ? 'ja' : 'en';
-  const sep      = langCode === 'ja' ? '' : ' ';
+  const langCode = lang || 'en';
+  const sep      = (langCode === 'ja' || langCode === 'zh' || langCode === 'ko') ? '' : ' ';
   const partials = new Map();
 
   let sentBuf = '';

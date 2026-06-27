@@ -7,11 +7,25 @@ function escapeHTML(s) {
     .replace(/'/g, '&#39;');
 }
 
+const LANGS = {
+  en: { name: 'Tiếng Anh',         flag: '🇬🇧' },
+  ja: { name: 'Tiếng Nhật',        flag: '🇯🇵' },
+  ko: { name: 'Tiếng Hàn',         flag: '🇰🇷' },
+  zh: { name: 'Tiếng Trung',       flag: '🇨🇳' },
+  vi: { name: 'Tiếng Việt',        flag: '🇻🇳' },
+  fr: { name: 'Tiếng Pháp',        flag: '🇫🇷' },
+  es: { name: 'Tiếng Tây Ban Nha', flag: '🇪🇸' },
+  de: { name: 'Tiếng Đức',         flag: '🇩🇪' },
+};
+const SRC_LANGS = ['en', 'ja', 'ko', 'zh', 'fr', 'es', 'de'];
+const TGT_LANGS = ['vi', 'en', 'ja', 'ko', 'zh', 'fr', 'es', 'de'];
+
 const state = {
   listening: false,
   sidebarOpen: true,
   lang: 'en',
-  sources: { system: true, mic: true },
+  targetLang: 'vi',
+  sources: { system: true, mic: false },
   lines: [],
   liveText: '',
   liveTranslation: '',
@@ -32,51 +46,87 @@ function applySidebarState() {
 // ── Listening state ──
 function applyListeningState() {
   const listening = state.listening;
-  body.classList.toggle('state-idle',       !listening);
-  body.classList.toggle('state-listening',   listening);
+  body.classList.toggle('state-idle',      !listening);
+  body.classList.toggle('state-listening',  listening);
 
   const btn = $('btn-start-stop');
-  btn.style.background  = listening ? 'oklch(0.96 0.04 25)'  : 'linear-gradient(135deg,oklch(0.66 0.16 295),oklch(0.58 0.18 290))';
-  btn.style.color       = listening ? 'oklch(0.55 0.16 25)'  : '#fff';
-  btn.style.boxShadow   = listening ? 'none' : '0 6px 16px -4px oklch(0.6 0.16 295/0.5)';
+  btn.style.background = listening ? 'oklch(0.96 0.04 25)' : 'linear-gradient(135deg,oklch(0.66 0.16 295),oklch(0.58 0.18 290))';
+  btn.style.color      = listening ? 'oklch(0.55 0.16 25)' : '#fff';
+  btn.style.boxShadow  = listening ? 'none' : '0 6px 16px -4px oklch(0.6 0.16 295/0.5)';
   $('btn-label').textContent       = listening ? 'Dừng' : 'Bắt đầu';
   $('btn-icon').style.borderRadius = listening ? '2px'  : '50%';
   $('btn-icon').style.width        = listening ? '10px' : '9px';
   $('btn-icon').style.height       = listening ? '10px' : '9px';
-
-  const pill  = $('status-pill');
-  const dot   = $('status-dot');
-  const label = $('status-label');
-  const bars  = $('status-bars');
-  pill.style.background = listening ? 'oklch(0.97 0.025 295)' : 'oklch(0.96 0.004 270)';
-  dot.style.background  = listening ? 'oklch(0.62 0.18 295)'  : 'oklch(0.75 0.01 270)';
-  dot.style.animation   = listening ? 'pulseDot 1.4s ease-in-out infinite' : '';
-  label.style.color     = listening ? 'oklch(0.5 0.12 295)'   : 'oklch(0.58 0.015 280)';
-  label.textContent     = listening ? 'Đang nghe' : 'Đã dừng';
-  bars.style.display    = listening ? 'flex' : 'none';
+  $('btn-eq-section').style.display = listening ? 'flex' : 'none';
 
   $('sidebar-sub').textContent = listening ? 'Cập nhật theo thời gian thực' : 'Tạm dừng';
 }
 
-// ── Source buttons ──
+// ── Source buttons (segmented group) ──
 function applySourceStyles() {
   ['system', 'mic'].forEach((k) => {
     const btn = document.querySelector(`[data-source="${k}"]`);
     const on  = state.sources[k];
-    btn.style.border     = `1px solid ${on ? 'oklch(0.85 0.05 295)' : 'oklch(0.91 0.006 270)'}`;
     btn.style.background = on ? 'oklch(0.96 0.03 295)' : 'oklch(0.99 0.002 270)';
-    btn.style.color      = on ? 'oklch(0.45 0.12 295)' : 'oklch(0.62 0.015 280)';
+    btn.style.color      = on ? 'oklch(0.45 0.12 295)' : 'oklch(0.66 0.015 280)';
+    btn.style.opacity    = on ? '1' : '0.55';
   });
 }
 
-// ── Language buttons ──
-function applyLangStyles() {
-  document.querySelectorAll('.lang-btn').forEach((btn) => {
-    const active = btn.dataset.lang === state.lang;
-    btn.style.background = active ? 'oklch(0.96 0.03 295)' : 'oklch(0.99 0.002 270)';
-    btn.style.color      = active ? 'oklch(0.45 0.12 295)' : 'oklch(0.5 0.02 280)';
-    btn.style.fontWeight = active ? '600' : '500';
+// ── Language picker ──
+let langPopoverOpen = false;
+
+function applyLangPickerButton() {
+  $('lang-src-flag').textContent = LANGS[state.lang]?.flag ?? '🌐';
+  $('lang-src-code').textContent = state.lang.toUpperCase();
+  $('lang-tgt-flag').textContent = LANGS[state.targetLang]?.flag ?? '🌐';
+  $('lang-tgt-code').textContent = state.targetLang.toUpperCase();
+}
+
+function renderLangLists() {
+  function buildList(containerId, codes, currentCode, onChange) {
+    const container = $(containerId);
+    container.innerHTML = '';
+    codes.forEach((c) => {
+      const on  = c === currentCode;
+      const btn = document.createElement('button');
+      btn.style.cssText = `display:flex;align-items:center;gap:9px;height:34px;padding:0 9px;border:none;border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;width:100%;background:${on ? 'oklch(0.96 0.025 295)' : 'transparent'};`;
+      btn.innerHTML = `
+        <span style="font-size:15px;line-height:1;">${LANGS[c].flag}</span>
+        <span style="flex:1;font-size:12.5px;font-weight:${on ? 600 : 500};color:${on ? 'oklch(0.4 0.1 295)' : 'oklch(0.35 0.02 280)'};">${LANGS[c].name}</span>
+        ${on ? '<span style="font-size:11px;color:oklch(0.55 0.12 295);">✓</span>' : ''}`;
+      btn.addEventListener('mouseenter', () => { if (!on) btn.style.background = 'oklch(0.95 0.008 290)'; });
+      btn.addEventListener('mouseleave', () => { if (!on) btn.style.background = 'transparent'; });
+      btn.addEventListener('click', () => { onChange(c); closeLangPopover(); });
+      container.appendChild(btn);
+    });
+  }
+  buildList('lang-src-list', SRC_LANGS, state.lang, (c) => {
+    state.lang = c;
+    applyLangPickerButton();
+    window.api.changeLang(state.lang);
   });
+  buildList('lang-tgt-list', TGT_LANGS, state.targetLang, (c) => {
+    state.targetLang = c;
+    applyLangPickerButton();
+  });
+}
+
+function openLangPopover() {
+  renderLangLists();
+  $('lang-popover').style.display  = 'flex';
+  $('lang-chevron').style.transform = 'rotate(180deg)';
+  $('btn-lang-picker').style.background   = 'oklch(0.97 0.012 290)';
+  $('btn-lang-picker').style.borderColor  = 'oklch(0.85 0.04 295)';
+  langPopoverOpen = true;
+}
+
+function closeLangPopover() {
+  $('lang-popover').style.display  = 'none';
+  $('lang-chevron').style.transform = 'rotate(0deg)';
+  $('btn-lang-picker').style.background   = 'oklch(0.99 0.002 270)';
+  $('btn-lang-picker').style.borderColor  = 'oklch(0.91 0.006 270)';
+  langPopoverOpen = false;
 }
 
 function committedLineHTML(line) {
@@ -200,19 +250,10 @@ window.api.onSubtitleToken(({ token }) => {
 
 window.api.onConnectionStatus(({ state: connState }) => {
   if (!state.listening) return;
-  const label = $('status-label');
-  const pill  = $('status-pill');
-  const dot   = $('status-dot');
   if (connState === 'reconnecting') {
-    label.textContent     = 'Đang kết nối lại…';
-    pill.style.background = 'oklch(0.97 0.03 50)';
-    dot.style.background  = 'oklch(0.75 0.14 50)';
-    dot.style.animation   = 'pulseDot 0.7s ease-in-out infinite';
+    $('btn-label').textContent = 'Kết nối lại…';
   } else if (connState === 'connected') {
-    label.textContent     = 'Đang nghe';
-    pill.style.background = 'oklch(0.97 0.025 295)';
-    dot.style.background  = 'oklch(0.62 0.18 295)';
-    dot.style.animation   = 'pulseDot 1.4s ease-in-out infinite';
+    $('btn-label').textContent = 'Dừng';
   }
 });
 
@@ -253,12 +294,13 @@ document.querySelectorAll('[data-source]').forEach((btn) => {
   });
 });
 
-document.querySelectorAll('.lang-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    state.lang = btn.dataset.lang;
-    applyLangStyles();
-    window.api.changeLang(state.lang);
-  });
+$('btn-lang-picker').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (langPopoverOpen) closeLangPopover(); else openLangPopover();
+});
+
+document.addEventListener('click', (e) => {
+  if (langPopoverOpen && !$('lang-picker-wrap').contains(e.target)) closeLangPopover();
 });
 
 function submitChat(message) {
@@ -281,5 +323,5 @@ document.querySelectorAll('.ai-chip').forEach((btn) => {
 // ── Initial render ──
 applyListeningState();
 applySourceStyles();
-applyLangStyles();
+applyLangPickerButton();
 applySidebarState();

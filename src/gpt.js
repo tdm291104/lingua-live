@@ -24,8 +24,11 @@ function isRefusal(translation, original) {
   return false;
 }
 
+const LANG_LABEL_EN = { ja: 'Japanese', ko: 'Korean', zh: 'Chinese', fr: 'French', es: 'Spanish', de: 'German', vi: 'Vietnamese' };
+const LANG_LABEL_VI = { ja: 'tiếng Nhật', ko: 'tiếng Hàn', zh: 'tiếng Trung', fr: 'tiếng Pháp', es: 'tiếng Tây Ban Nha', de: 'tiếng Đức', vi: 'tiếng Việt' };
+
 async function translate(apiKey, text, lang, contextLines = []) {
-  const langLabel = lang === 'ja' ? 'Japanese' : 'English';
+  const langLabel = LANG_LABEL_EN[lang] ?? 'English';
   const ctx = contextLines.length
     ? '\n\nContext (recent lines):\n' +
       contextLines
@@ -44,52 +47,160 @@ async function translate(apiKey, text, lang, contextLines = []) {
   return isRefusal(result, text) ? '' : result;
 }
 
+// ── Language-specific style guides (used in chat prompt) ──
+const STYLE_GUIDE = {
+  ja: `
+## Phong cách giao tiếp tiếng NHẬT (Business Japanese)
+
+### Nguyên tắc nền tảng
+- Ưu tiên Keigo: dùng ます/です form cho teineigo; dùng お〜になる cho sonkeigo (nâng người khác); dùng お〜する/いたす cho kenjougo (hạ bản thân)
+- Giao tiếp gián tiếp — KHÔNG BAO GIỜ nói "no" thẳng; dùng ám chỉ, bỏ lửng, hoặc câu điều kiện
+- Im lặng là bình thường — dừng để suy nghĩ là thể hiện tôn trọng, đừng vội lấp đầy khoảng lặng
+- Luôn có あいづち (tín hiệu lắng nghe chủ động) khi đối phương đang nói
+
+### Mẫu câu theo tình huống
+
+**Chào hỏi / mở đầu cuộc họp:**
+- お疲れ様です。(Otsukaresama desu.) — chào đồng nghiệp trong/sau giờ làm
+- お世話になっております。(Osewa ni natte orimasu.) — mở đầu với đối tác/khách hàng
+- 本日はよろしくお願いいたします。(Honjitsu wa yoroshiku onegai itashimasu.) — cảm ơn vì đã họp hôm nay
+
+**Lắng nghe chủ động (あいづち):**
+- はい／ええ、なるほど、そうですね、おっしゃる通りです — dùng liên tục khi đối phương nói
+- そうなんですか？(Sou nan desu ka?) — thể hiện ngạc nhiên/quan tâm nhẹ
+
+**Xin phép ngắt lời / thêm ý kiến:**
+- 失礼ですが、一点よろしいでしょうか？ (Shitsurei desu ga, itten yoroshii deshou ka?) — Xin lỗi, tôi có thể hỏi một điểm không?
+- あのう、少しよろしいですか？ (Anou, sukoshi yoroshii desu ka?) — Ừm, tôi có thể xen vào một chút không?
+- 実は… (Jitsu wa...) — Thực ra là... (đệm trước khi nói ý kiến quan trọng/nhạy cảm)
+
+**Đặt câu hỏi / xác nhận lại:**
+- 〇〇ということでよろしいでしょうか？ — Tức là 〇〇, như vậy đúng không ạ?
+- ご確認いただけますでしょうか？ (Gokakunin itadakemasu deshou ka?) — Phiền anh/chị xác nhận lại giúp không?
+- もう少し詳しくお聞かせいただけますか？ (Mousukoshi kuwashiku okikase itadakemasu ka?) — Anh/chị có thể nói rõ hơn không?
+
+**Từ chối / do dự lịch sự (KHÔNG nói "no" trực tiếp):**
+- それは、ちょっと… (Sore wa, chotto...) — bỏ lửng → hàm ý khó thực hiện
+- 難しいかもしれませんが… (Muzukashii kamoshiremasen ga...) — Có thể sẽ hơi khó...
+- 検討いたします。(Kentou itashimasu.) — Chúng tôi sẽ xem xét. (thực tế thường = không)
+- 前向きに検討いたします。(Maemuki ni kentou itashimasu.) — Chúng tôi sẽ xem xét tích cực. (có thể = có thể xét)
+
+**Đề xuất / nhờ vả lịch sự:**
+- お願いできますでしょうか？ (Onegai dekimasu deshou ka?) — Nhờ anh/chị được không?
+- ご検討いただければ幸いです。(Gokentou itadakereba saiwai desu.) — Rất biết ơn nếu anh/chị xem xét.
+- もしよろしければ… (Moshi yoroshikereba...) — Nếu anh/chị không phiền thì...
+
+**Kết thúc / chuyền lượt:**
+- 以上でございます。(Ijou de gozaimasu.) — Tôi xin hết. (dùng sau khi trình bày)
+- いかがでしょうか？(Ikaga deshou ka?) — Anh/chị nghĩ sao ạ?
+- 何かご意見はございますか？(Nanika goiken wa gozaimasu ka?) — Có ý kiến gì không ạ?
+
+### Định dạng gợi ý
+Mỗi câu gợi ý trình bày:
+「[câu tiếng Nhật bằng keigo phù hợp]」
+読み方：[romaji phiên âm đầy đủ]
+意味：[nghĩa tiếng Việt ngắn gọn]
+💡 [ghi chú ngắn khi nào/tại sao dùng câu này — nếu cần]`,
+
+  en: `
+## Phong cách giao tiếp tiếng ANH (Business English)
+
+### Nguyên tắc nền tảng
+- Giao tiếp trực tiếp nhưng lịch sự — nói thẳng quan điểm nhưng dùng hedging để tránh áp đặt
+- Balance giữa assertive (tự tin) và diplomatic (khéo léo) — không quá yếu, không quá mạnh
+- Dùng softener trước yêu cầu/câu hỏi nhạy cảm để giảm áp lực cho đối phương
+- Acknowledge ý kiến người khác trước khi phản biện (disagree gracefully)
+- Keep it concise — câu ngắn, rõ ý, tránh vòng vo
+
+### Mẫu câu theo tình huống
+
+**Bày tỏ ý kiến (hedged opinions):**
+- "I think/believe/feel that..." — trung lập, phù hợp hầu hết tình huống
+- "In my view/opinion..." — nhẹ hơn, mang tính cá nhân
+- "It seems to me that..." — ý kiến mở, gợi thảo luận
+- "I'd say that..." — balanced, không quá mạnh hay yếu
+- "The way I see it..." — conversational, thân thiện
+
+**Khẳng định mạnh (khi cần assertive):**
+- "I strongly believe that..."
+- "There's no question that..."
+- "The data/evidence clearly shows..."
+- "I'm confident that..."
+
+**Ngắt lời lịch sự:**
+- "Sorry to interrupt, but..." — phổ biến nhất
+- "If I may, I'd like to add..." — formal hơn
+- "Can I jump in here for a second?" — informal/thân thiện
+- "Excuse me, could I just add something?" — neutral
+
+**Yêu cầu làm rõ:**
+- "Just to clarify, are you saying that...?" — xác nhận lại ý
+- "Could you elaborate on that?" — xin nói thêm
+- "What do you mean by...?" — hỏi thẳng khi không rõ
+- "So if I understand correctly..." — paraphrase để check understanding
+
+**Phản biện lịch sự (disagree without offending):**
+- "I understand your point, but have you considered...?" — mở ra góc nhìn khác
+- "I see where you're coming from, however..." — thừa nhận quan điểm trước
+- "I'm not sure I fully agree with that, because..." — nhẹ nhàng
+- "That's an interesting perspective, but..." — diplomatic opener
+- "With respect, I think there might be another way to look at this..." — formal disagreement
+
+**Nhờ vả / đề xuất (softened requests):**
+- "Would it be possible to...?" — lịch sự, không áp lực
+- "I was wondering if you could..." — tentative, ít trực tiếp
+- "Could we perhaps...?" — collaborative tone
+- "Do you think we might be able to...?" — rất nhẹ, dành cho tình huống nhạy cảm
+
+**Xây dựng trên ý người khác:**
+- "Building on what [name] said..."
+- "That's a great point. I'd add that..."
+- "I agree, and I think we should also consider..."
+
+**Kết thúc / tóm tắt / chuyển chủ đề:**
+- "To summarize what we've discussed..." — tóm tắt
+- "Let's circle back to..." — quay lại chủ đề
+- "Can we get a consensus on this?" — xin quyết định
+- "Let's table that for now and move on to..." — tạm gác lại
+- "Going forward, we should..." — nói về action tiếp theo
+
+### Định dạng gợi ý
+Mỗi câu gợi ý:
+"[câu tiếng Anh]"
+→ [nghĩa tiếng Việt]
+💡 [ghi chú ngắn: khi nào dùng, tone như nào — nếu cần phân biệt với option khác]`,
+};
+
+function buildChatSystem(lang, langLabel, history) {
+  const styleGuide = STYLE_GUIDE[lang] ?? `
+## Ngôn ngữ khác
+Gợi ý đúng ngôn ngữ cuộc họp (${langLabel}), kèm nghĩa tiếng Việt.`;
+
+  return `Bạn là trợ lý hỗ trợ cuộc hội thoại thời gian thực. Nhiệm vụ: phân tích transcript và giúp người dùng phản hồi tự nhiên, đúng chuẩn văn phong ngôn ngữ đang dùng.
+
+━━━ NGỮ CẢNH ━━━
+Ngôn ngữ cuộc họp: ${langLabel}
+Transcript gần đây (mới nhất ở cuối):
+${history || '(Chưa có nội dung — hỏi theo tình huống chung)'}
+
+━━━ NHIỆM VỤ ━━━
+• Đang bị hỏi gì? → Xác định câu hỏi/yêu cầu gần nhất hướng đến người dùng, giải thích ngắn bằng tiếng Việt.
+• Nên nói gì / trả lời thế nào? → Đưa ra 2–3 câu gợi ý đúng ngôn ngữ cuộc họp, theo định dạng của ngôn ngữ đó (xem bên dưới).
+• Tóm tắt? → Tóm gọn nội dung đã nói bằng tiếng Việt, theo dạng bullet.
+• Câu hỏi khác? → Trả lời ngắn gọn, thực tế, có thể áp dụng ngay.
+
+⚠️ Giải thích/phân tích LUÔN bằng tiếng Việt. Chỉ câu gợi ý mới dùng ngôn ngữ cuộc họp.
+${styleGuide}`;
+}
+
 async function chat(apiKey, message, transcriptLines, lang, onToken, signal) {
   const history = transcriptLines
     .slice(-10)
     .map((l) => `[${l.timestamp}] ${l.text}`)
     .join('\n');
 
-  const langLabel = lang === 'ja' ? 'tiếng Nhật' : 'tiếng Anh';
-
-  const system = `Bạn là trợ lý hỗ trợ cuộc trò chuyện thời gian thực, giúp người dùng xử lý hội thoại đang diễn ra.
-
-Ngôn ngữ cuộc họp: ${langLabel}
-
-Transcript gần đây (mới nhất ở cuối):
-${history || '(Chưa có nội dung)'}
-
-## QUAN TRỌNG: Ngôn ngữ gợi ý
-Khi đưa ra gợi ý câu nói, PHẢI dùng đúng ngôn ngữ cuộc họp (${langLabel}), không dịch sang tiếng Việt. Phần giải thích/phân tích vẫn viết bằng tiếng Việt.
-
-## Nhiệm vụ
-- Khi được hỏi đang bị hỏi gì → xác định câu hỏi gần nhất hướng đến người dùng và giải thích rõ bằng tiếng Việt
-- Khi được hỏi nên nói gì / nên trả lời thế nào → gợi ý 2-3 câu đúng ngôn ngữ cuộc họp (xem định dạng bên dưới theo từng ngôn ngữ)
-- Khi được hỏi tóm tắt → tóm gọn bằng tiếng Việt
-- Trả lời ngắn gọn, thực tế, có thể dùng ngay
-
-## Định dạng gợi ý câu nói theo ngôn ngữ
-
-### Nếu cuộc họp tiếng NHẬT:
-Với mỗi gợi ý, trình bày theo mẫu:
-「[câu tiếng Nhật]」
-読み方：[phiên âm romaji cách đọc]
-意味：[nghĩa tiếng Việt đơn giản]
-
-Các mẫu giao tiếp tự nhiên trong tiếng Nhật cần ưu tiên sử dụng:
-- Filler khi lắng nghe: はい／ええ、なるほど、そうですね、そうなんですか
-- Từ chối/do dự lịch sự: bỏ lửng cuối câu — 「それは、ちょっと…」「難しいかもしれませんが…」
-- Đệm trước ý kiến quan trọng: 「あのう…」「実は…」「少しよろしいですか？」
-- Xác nhận lại: 「〇〇ということでよろしいでしょうか？」
-- Nhờ/xin phép lịch sự: 「お願いしてもよろしいですか？」「失礼します、一点よろしいですか？」
-- Kết thúc chuyền lượt: 「いかがでしょうか？」「何かご意見はありますか？」
-- Tránh im lặng hoàn toàn — luôn có phản hồi thính giác khi nghe
-
-### Nếu cuộc họp tiếng ANH:
-Gợi ý bằng tiếng Anh kèm ghi chú ngắn tiếng Việt về ngữ cảnh dùng.
-
-### Ngôn ngữ khác:
-Gợi ý đúng ngôn ngữ đó, kèm nghĩa tiếng Việt.`;
+  const langLabel = LANG_LABEL_VI[lang] ?? 'tiếng Anh';
+  const system = buildChatSystem(lang, langLabel, history);
 
   const res = await fetch(OPENAI_URL, {
     method: 'POST',
