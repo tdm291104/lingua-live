@@ -148,15 +148,19 @@
         <div style="padding:0 14px 16px;flex-shrink:0;position:relative;">
           <!-- Slash command popover -->
           <div id="slash-popover" style="display:none;position:absolute;bottom:calc(100% - 10px);left:14px;right:14px;background:oklch(0.997 0.001 270);border:1px solid oklch(0.9 0.006 270);border-radius:11px;box-shadow:0 8px 28px -8px oklch(0.4 0.04 280/0.22);padding:5px;z-index:50;"></div>
-          <div style="display:flex;align-items:center;gap:8px;min-height:40px;background:oklch(0.995 0.002 270);border:1px solid oklch(0.9 0.006 270);border-radius:10px;padding:6px 6px 6px 13px;">
-            <div id="mode-chip" style="display:none;align-items:center;gap:4px;padding:3px 6px 3px 7px;border-radius:6px;background:oklch(0.94 0.03 295);border:1px solid oklch(0.86 0.06 295);flex-shrink:0;">
-              <span id="mode-chip-icon" style="font-size:11px;line-height:1;"></span>
-              <span id="mode-chip-label" style="font-size:11.5px;font-weight:600;color:oklch(0.42 0.12 295);white-space:nowrap;"></span>
-              <button id="mode-chip-clear" style="width:14px;height:14px;border:none;background:none;color:oklch(0.6 0.08 295);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-left:1px;line-height:1;">×</button>
+          <div style="display:flex;align-items:flex-end;gap:8px;min-height:40px;background:oklch(0.995 0.002 270);border:1px solid oklch(0.9 0.006 270);border-radius:10px;padding:6px 6px 6px 13px;">
+            <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;padding:3px 0;">
+              <div id="mode-chip" style="display:none;align-items:center;gap:4px;padding:3px 6px 3px 7px;border-radius:6px;background:oklch(0.94 0.03 295);border:1px solid oklch(0.86 0.06 295);align-self:flex-start;">
+                <span id="mode-chip-icon" style="font-size:11px;line-height:1;"></span>
+                <span id="mode-chip-label" style="font-size:11.5px;font-weight:600;color:oklch(0.42 0.12 295);white-space:nowrap;"></span>
+                <button id="mode-chip-clear" style="width:14px;height:14px;border:none;background:none;color:oklch(0.6 0.08 295);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-left:1px;line-height:1;">×</button>
+              </div>
+              <textarea id="chat-input" placeholder="Message…" rows="1" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;min-width:0;resize:none;overflow:hidden;line-height:1.45;padding:0;outline:none;max-height:120px;"></textarea>
             </div>
-            <button id="slash-hint-btn" title="Pick a mode" style="flex-shrink:0;width:22px;height:22px;border:1px solid oklch(0.91 0.006 270);border-radius:5px;background:transparent;color:oklch(0.62 0.02 280);font-size:11px;font-family:'Geist Mono',monospace;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s,color 0.1s;" onmouseenter="this.style.background='oklch(0.95 0.025 295)';this.style.color='oklch(0.48 0.1 295)';this.style.borderColor='oklch(0.86 0.06 295)'" onmouseleave="this.style.background='transparent';this.style.color='oklch(0.62 0.02 280)';this.style.borderColor='oklch(0.91 0.006 270)'">/</button>
-            <input id="chat-input" placeholder="Message…" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;min-width:0;">
-            <button id="chat-submit" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;padding-bottom:1px;">
+              <button id="slash-hint-btn" title="Pick a mode" style="width:22px;height:22px;border:1px solid oklch(0.91 0.006 270);border-radius:5px;background:transparent;color:oklch(0.62 0.02 280);font-size:11px;font-family:'Geist Mono',monospace;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s,color 0.1s;" onmouseenter="this.style.background='oklch(0.95 0.025 295)';this.style.color='oklch(0.48 0.1 295)';this.style.borderColor='oklch(0.86 0.06 295)'" onmouseleave="this.style.background='transparent';this.style.color='oklch(0.62 0.02 280)';this.style.borderColor='oklch(0.91 0.006 270)'">/</button>
+              <button id="chat-submit" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
+            </div>
           </div>
         </div>
       </div>

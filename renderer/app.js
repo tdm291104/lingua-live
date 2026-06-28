@@ -468,6 +468,12 @@ function clearMode() {
 
 $('mode-chip-clear').addEventListener('click', () => { clearMode(); $('chat-input').focus(); });
 
+function autoResizeInput() {
+  const el = $('chat-input');
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
 $('chat-input').addEventListener('input', () => {
   const val = $('chat-input').value;
   if (!selectedMode && (val === '/' || (val.startsWith('/') && !val.slice(1).includes(' ')))) {
@@ -475,6 +481,7 @@ $('chat-input').addEventListener('input', () => {
   } else if (!val.startsWith('/')) {
     closeSlash();
   }
+  autoResizeInput();
 });
 
 document.addEventListener('click', (e) => {
@@ -491,6 +498,7 @@ function submitChat(message) {
   clearMode();
 
   $('chat-input').value       = '';
+  $('chat-input').style.height = '';
   $('chat-submit').innerHTML  = '<span class="btn-spinner"></span>';
   $('chat-submit').disabled   = true;
   setChipsLoading(true);
@@ -505,7 +513,12 @@ $('chat-input').addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp')   { slashIdx = (slashIdx - 1 + SLASH_MODES.length) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
     if (e.key === 'Tab' || e.key === 'Enter') { selectSlash(slashIdx); e.preventDefault(); return; }
   }
-  if (e.key === 'Enter') submitChat();
+  if (e.key === 'Backspace' && !$('chat-input').value && selectedMode) {
+    clearMode();
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
 });
 
 document.querySelectorAll('.ai-chip').forEach((btn) => {
