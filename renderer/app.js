@@ -468,13 +468,10 @@ function clearMode() {
 
 $('mode-chip-clear').addEventListener('click', () => { clearMode(); $('chat-input').focus(); });
 
-const CHAT_INPUT_MAX_H = 160;
 function autoResizeInput() {
   const el = $('chat-input');
   el.style.height = 'auto';
-  const h = el.scrollHeight;
-  el.style.height = Math.min(h, CHAT_INPUT_MAX_H) + 'px';
-  el.style.overflowY = h > CHAT_INPUT_MAX_H ? 'auto' : 'hidden';
+  el.style.height = el.scrollHeight + 'px';
 }
 
 $('chat-input').addEventListener('input', () => {
@@ -502,7 +499,6 @@ function submitChat(message) {
 
   $('chat-input').value        = '';
   $('chat-input').style.height = '';
-  $('chat-input').style.overflowY = 'hidden';
   $('chat-submit').innerHTML  = '<span class="btn-spinner"></span>';
   $('chat-submit').disabled   = true;
   setChipsLoading(true);
