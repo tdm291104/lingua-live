@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -41,7 +41,7 @@
     <!-- Start/Stop -->
     <button id="btn-start-stop" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 15px 0 13px;border-radius:10px;font-size:13px;font-weight:600;transition:all 0.15s;">
       <span id="btn-icon" style="width:9px;height:9px;border-radius:50%;background:currentColor;display:block;"></span>
-      <span id="btn-label">Bắt đầu</span>
+      <span id="btn-label">Start</span>
       <span id="btn-eq-section" style="display:none;align-items:center;gap:2px;">
         <span style="width:1px;height:16px;background:currentColor;opacity:0.25;margin:0 4px;flex-shrink:0;"></span>
         <span style="width:2.5px;background:currentColor;border-radius:2px;display:block;animation:barEq 0.9s ease-in-out 0s infinite;"></span>
@@ -54,7 +54,7 @@
     <!-- Source segmented group -->
     <div style="display:flex;align-items:center;height:38px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);overflow:hidden;">
       <button id="btn-sys" data-source="system" style="display:flex;align-items:center;gap:6px;height:100%;padding:0 12px;border:none;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;">
-        <span style="font-size:14px;">🔊</span><span>Máy</span>
+        <span style="font-size:14px;">🔊</span><span>System</span>
       </button>
       <div style="width:1px;height:20px;background:oklch(0.91 0.006 270);flex-shrink:0;"></div>
       <button id="btn-mic" data-source="mic" style="display:flex;align-items:center;gap:6px;height:100%;padding:0 12px;border:none;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;">
@@ -64,11 +64,14 @@
 
     <div style="flex:1;"></div>
 
+    <!-- Clear transcript -->
+    <button id="btn-clear-transcript" title="Clear transcript" style="width:34px;height:38px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);background:oklch(0.99 0.002 270);color:oklch(0.65 0.015 280);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.1s,border-color 0.1s,color 0.1s;" onmouseenter="this.style.background='oklch(0.96 0.04 25)';this.style.borderColor='oklch(0.85 0.1 25)';this.style.color='oklch(0.55 0.18 25)'" onmouseleave="this.style.background='oklch(0.99 0.002 270)';this.style.borderColor='oklch(0.91 0.006 270)';this.style.color='oklch(0.65 0.015 280)'"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5h9M5 3.5v-1a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M3.2 3.5l.55 6.5a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5l.55-6.5" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+
     <!-- Language picker -->
     <div id="lang-picker-wrap" style="position:relative;">
       <button id="btn-lang-picker" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 11px 0 12px;border-radius:10px;border:1px solid oklch(0.91 0.006 270);background:oklch(0.99 0.002 270);font-family:inherit;cursor:pointer;transition:background 0.1s,border-color 0.1s;">
-        <span id="lang-src-flag" style="font-size:14px;line-height:1;">🇬🇧</span>
-        <span id="lang-src-code" style="font-size:12.5px;font-weight:600;color:oklch(0.4 0.04 290);">EN</span>
+        <span id="lang-src-flag" style="font-size:14px;line-height:1;">🇯🇵</span>
+        <span id="lang-src-code" style="font-size:12.5px;font-weight:600;color:oklch(0.4 0.04 290);">JA</span>
         <span style="font-size:12px;color:oklch(0.7 0.02 280);">→</span>
         <span id="lang-tgt-flag" style="font-size:14px;line-height:1;">🇻🇳</span>
         <span id="lang-tgt-code" style="font-size:12.5px;font-weight:600;color:oklch(0.4 0.04 290);">VI</span>
@@ -76,12 +79,12 @@
       </button>
       <div id="lang-popover" style="display:none;position:absolute;top:44px;right:0;z-index:50;width:340px;background:oklch(0.997 0.001 270);border:1px solid oklch(0.9 0.006 270);border-radius:13px;box-shadow:0 18px 44px -12px oklch(0.4 0.04 280/0.32);padding:6px;flex-direction:row;gap:4px;">
         <div style="flex:1;display:flex;flex-direction:column;">
-          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Ngôn ngữ nghe</div>
+          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Source</div>
           <div id="lang-src-list" class="ll-scroll" style="display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto;"></div>
         </div>
         <div style="width:1px;background:oklch(0.94 0.005 270);margin:8px 2px;flex-shrink:0;"></div>
         <div style="flex:1;display:flex;flex-direction:column;">
-          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Dịch sang</div>
+          <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.04em;padding:9px 10px 6px;">Translate to</div>
           <div id="lang-tgt-list" class="ll-scroll" style="display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto;"></div>
         </div>
       </div>
@@ -99,9 +102,9 @@
         <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,oklch(0.95 0.03 295),oklch(0.9 0.05 295));display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
           <span style="font-size:28px;">🎧</span>
         </div>
-        <div style="font-size:17px;font-weight:600;color:oklch(0.35 0.02 280);">Sẵn sàng lắng nghe</div>
+        <div style="font-size:17px;font-weight:600;color:oklch(0.35 0.02 280);">Ready to listen</div>
         <div style="font-size:13.5px;line-height:1.55;color:oklch(0.58 0.015 280);margin-top:7px;max-width:360px;">
-          Nhấn <span style="font-weight:600;color:oklch(0.5 0.12 295);">Bắt đầu</span> để LinguaLive ghi lại và dịch âm thanh theo thời gian thực.
+          Press <span style="font-weight:600;color:oklch(0.5 0.12 295);">Start</span> to let LinguaLive capture and translate audio in real time.
         </div>
       </div>
 
@@ -121,12 +124,15 @@
       <!-- Header + Tabs -->
       <div style="padding:14px 18px 0;border-bottom:1px solid oklch(0.93 0.005 270);flex-shrink:0;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-size:13.5px;font-weight:600;color:oklch(0.3 0.02 280);">✦ Trợ lý AI</div>
-          <div id="sidebar-sub" style="font-size:12px;color:oklch(0.6 0.015 280);">Tạm dừng</div>
+          <div style="font-size:13.5px;font-weight:600;color:oklch(0.3 0.02 280);">✦ AI Assistant</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div id="sidebar-sub" style="font-size:12px;color:oklch(0.6 0.015 280);">Paused</div>
+            <button id="btn-clear-chat" title="Clear chat" style="width:24px;height:24px;border-radius:6px;border:none;background:transparent;color:oklch(0.65 0.015 280);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.1s,color 0.1s;" onmouseenter="this.style.background='oklch(0.95 0.04 25)';this.style.color='oklch(0.55 0.18 25)'" onmouseleave="this.style.background='transparent';this.style.color='oklch(0.65 0.015 280)'"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5h9M5 3.5v-1a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M3.2 3.5l.55 6.5a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5l.55-6.5" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
         </div>
         <div style="display:flex;gap:2px;">
           <button id="tab-chat" class="sidebar-tab sidebar-tab-active" style="flex:1;height:30px;border:none;border-radius:7px 7px 0 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Chat</button>
-          <button id="tab-phrases" class="sidebar-tab" style="flex:1;height:30px;border:none;border-radius:7px 7px 0 0;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">Câu sẵn</button>
+          <button id="tab-phrases" class="sidebar-tab" style="flex:1;height:30px;border:none;border-radius:7px 7px 0 0;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">Phrases</button>
         </div>
       </div>
 
@@ -134,13 +140,20 @@
       <div id="panel-chat" style="flex:1;display:flex;flex-direction:column;min-height:0;">
         <div id="chat-history" class="ll-scroll" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;"></div>
         <div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;">
-          <button class="ai-chip" data-q="Tôi đang bị hỏi gì?">Đang hỏi gì?</button>
-          <button class="ai-chip" data-q="Bây giờ tôi nên nói gì?">Nên nói gì?</button>
-          <button class="ai-chip" data-q="Tóm tắt cuộc trò chuyện">Tóm tắt</button>
+          <button class="ai-chip" data-q="Analyze the transcript and tell me what topic or question is currently directed at me.">What's asked?</button>
+          <button class="ai-chip" data-q="Based on the conversation context, what would be appropriate for me to respond next? Give me your analysis in Vietnamese, then one suggested phrase.">What to say?</button>
+          <button class="ai-chip" data-q="Summarize the key points of the conversation so far in Vietnamese bullet points.">Summarize</button>
         </div>
-        <div style="padding:0 14px 16px;flex-shrink:0;">
+        <div style="padding:0 14px 16px;flex-shrink:0;position:relative;">
+          <!-- Slash command popover -->
+          <div id="slash-popover" style="display:none;position:absolute;bottom:calc(100% - 10px);left:14px;right:14px;background:oklch(0.997 0.001 270);border:1px solid oklch(0.9 0.006 270);border-radius:11px;box-shadow:0 8px 28px -8px oklch(0.4 0.04 280/0.22);padding:5px;z-index:50;"></div>
           <div style="display:flex;align-items:center;gap:8px;min-height:40px;background:oklch(0.995 0.002 270);border:1px solid oklch(0.9 0.006 270);border-radius:10px;padding:6px 6px 6px 13px;">
-            <input id="chat-input" placeholder="Hỏi về cuộc trò chuyện…" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;">
+            <div id="mode-chip" style="display:none;align-items:center;gap:4px;padding:3px 6px 3px 7px;border-radius:6px;background:oklch(0.94 0.03 295);border:1px solid oklch(0.86 0.06 295);flex-shrink:0;">
+              <span id="mode-chip-icon" style="font-size:11px;line-height:1;"></span>
+              <span id="mode-chip-label" style="font-size:11.5px;font-weight:600;color:oklch(0.42 0.12 295);white-space:nowrap;"></span>
+              <button id="mode-chip-clear" style="width:14px;height:14px;border:none;background:none;color:oklch(0.6 0.08 295);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-left:1px;line-height:1;">×</button>
+            </div>
+            <input id="chat-input" placeholder="Message or type / to pick a mode…" style="flex:1;border:none;background:transparent;font-size:13px;color:oklch(0.3 0.02 280);font-family:inherit;min-width:0;">
             <button id="chat-submit" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
           </div>
         </div>

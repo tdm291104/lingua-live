@@ -8,14 +8,14 @@ function escapeHTML(s) {
 }
 
 const LANGS = {
-  en: { name: 'Tiếng Anh',         flag: '🇬🇧' },
-  ja: { name: 'Tiếng Nhật',        flag: '🇯🇵' },
-  ko: { name: 'Tiếng Hàn',         flag: '🇰🇷' },
-  zh: { name: 'Tiếng Trung',       flag: '🇨🇳' },
-  vi: { name: 'Tiếng Việt',        flag: '🇻🇳' },
-  fr: { name: 'Tiếng Pháp',        flag: '🇫🇷' },
-  es: { name: 'Tiếng Tây Ban Nha', flag: '🇪🇸' },
-  de: { name: 'Tiếng Đức',         flag: '🇩🇪' },
+  en: { name: 'English',    flag: '🇬🇧' },
+  ja: { name: 'Japanese',   flag: '🇯🇵' },
+  ko: { name: 'Korean',     flag: '🇰🇷' },
+  zh: { name: 'Chinese',    flag: '🇨🇳' },
+  vi: { name: 'Vietnamese', flag: '🇻🇳' },
+  fr: { name: 'French',     flag: '🇫🇷' },
+  es: { name: 'Spanish',    flag: '🇪🇸' },
+  de: { name: 'German',     flag: '🇩🇪' },
 };
 const SRC_LANGS = ['en', 'ja', 'ko', 'zh', 'fr', 'es', 'de'];
 const TGT_LANGS = ['vi', 'en', 'ja', 'ko', 'zh', 'fr', 'es', 'de'];
@@ -23,7 +23,7 @@ const TGT_LANGS = ['vi', 'en', 'ja', 'ko', 'zh', 'fr', 'es', 'de'];
 const state = {
   listening: false,
   sidebarOpen: true,
-  lang: 'en',
+  lang: 'ja',
   targetLang: 'vi',
   sources: { system: true, mic: false },
   lines: [],
@@ -53,13 +53,13 @@ function applyListeningState() {
   btn.style.background = listening ? 'oklch(0.96 0.04 25)' : 'linear-gradient(135deg,oklch(0.66 0.16 295),oklch(0.58 0.18 290))';
   btn.style.color      = listening ? 'oklch(0.55 0.16 25)' : '#fff';
   btn.style.boxShadow  = listening ? 'none' : '0 6px 16px -4px oklch(0.6 0.16 295/0.5)';
-  $('btn-label').textContent       = listening ? 'Dừng' : 'Bắt đầu';
+  $('btn-label').textContent       = listening ? 'Stop' : 'Start';
   $('btn-icon').style.borderRadius = listening ? '2px'  : '50%';
   $('btn-icon').style.width        = listening ? '10px' : '9px';
   $('btn-icon').style.height       = listening ? '10px' : '9px';
   $('btn-eq-section').style.display = listening ? 'flex' : 'none';
 
-  $('sidebar-sub').textContent = listening ? 'Cập nhật theo thời gian thực' : 'Tạm dừng';
+  $('sidebar-sub').textContent = listening ? 'Live' : 'Paused';
 }
 
 // ── Source buttons (segmented group) ──
@@ -252,9 +252,9 @@ window.api.onSubtitleToken(({ token }) => {
 window.api.onConnectionStatus(({ state: connState }) => {
   if (!state.listening) return;
   if (connState === 'reconnecting') {
-    $('btn-label').textContent = 'Kết nối lại…';
+    $('btn-label').textContent = 'Reconnecting…';
   } else if (connState === 'connected') {
-    $('btn-label').textContent = 'Dừng';
+    $('btn-label').textContent = 'Stop';
   }
 });
 
@@ -304,21 +304,116 @@ document.addEventListener('click', (e) => {
   if (langPopoverOpen && !$('lang-picker-wrap').contains(e.target)) closeLangPopover();
 });
 
+// ── Slash command picker ──
+const SLASH_MODES = [
+  { key: 'say',  label: 'Quick phrase', desc: 'Get a phrase to say right now', icon: '⚡', transform: (m) => '>' + m },
+  { key: 'ask',  label: 'Ask AI',       desc: 'Analyze context or ask a question', icon: '✦', transform: (m) => m      },
+];
+
+let slashOpen    = false;
+let slashIdx     = 0;
+let selectedMode = null;
+
+function renderSlashPopover() {
+  $('slash-popover').innerHTML = SLASH_MODES.map((m, i) => `
+    <button class="slash-item" data-idx="${i}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:none;border-radius:8px;cursor:pointer;font-family:inherit;background:transparent;text-align:left;">
+      <span style="width:26px;height:26px;border-radius:7px;background:oklch(0.94 0.025 295);color:oklch(0.48 0.12 295);font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${m.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;font-weight:600;color:oklch(0.3 0.02 280);">${m.label}</div>
+        <div style="font-size:11.5px;color:oklch(0.6 0.015 280);margin-top:1px;">${m.desc}</div>
+      </div>
+      <span style="font-size:11px;color:oklch(0.72 0.02 280);font-family:'Geist Mono',monospace;">/${m.key}</span>
+    </button>`).join('');
+  $('slash-popover').querySelectorAll('.slash-item').forEach((btn, i) => {
+    btn.addEventListener('mouseenter', () => { slashIdx = i; highlightSlash(); });
+    btn.addEventListener('click',      () => selectSlash(i));
+  });
+}
+
+function highlightSlash() {
+  $('slash-popover').querySelectorAll('.slash-item').forEach((btn, i) => {
+    btn.style.background = i === slashIdx ? 'oklch(0.96 0.025 295)' : 'transparent';
+    btn.querySelector('div > div').style.color = i === slashIdx ? 'oklch(0.42 0.1 295)' : 'oklch(0.3 0.02 280)';
+  });
+}
+
+function openSlash() {
+  renderSlashPopover();
+  $('slash-popover').style.display = 'block';
+  slashOpen = true;
+  slashIdx  = 0;
+  highlightSlash();
+}
+
+function closeSlash() {
+  $('slash-popover').style.display = 'none';
+  slashOpen = false;
+}
+
+function selectSlash(idx) {
+  selectedMode = SLASH_MODES[idx];
+  $('mode-chip-icon').textContent  = selectedMode.icon;
+  $('mode-chip-label').textContent = selectedMode.label;
+  $('mode-chip').style.display     = 'flex';
+  $('chat-input').value = '';
+  $('chat-input').placeholder = 'Type your message…';
+  closeSlash();
+  $('chat-input').focus();
+}
+
+function clearMode() {
+  selectedMode = null;
+  $('mode-chip').style.display = 'none';
+  $('chat-input').placeholder  = 'Message or type / to pick a mode…';
+}
+
+$('mode-chip-clear').addEventListener('click', () => { clearMode(); $('chat-input').focus(); });
+
+$('chat-input').addEventListener('input', () => {
+  const val = $('chat-input').value;
+  if (!selectedMode && (val === '/' || (val.startsWith('/') && !val.slice(1).includes(' ')))) {
+    openSlash();
+  } else if (!val.startsWith('/')) {
+    closeSlash();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (slashOpen && !$('slash-popover').contains(e.target) && e.target !== $('chat-input')) closeSlash();
+});
+
 function submitChat(message) {
-  const q = (message ?? $('chat-input').value).trim();
+  let q = (message ?? $('chat-input').value).trim();
   if (!q || $('chat-submit').disabled) return;
+  closeSlash();
+
+  const display = q;
+  if (selectedMode) q = selectedMode.transform(q);
+  clearMode();
+
   $('chat-input').value        = '';
   $('chat-submit').textContent = '⏳';
   $('chat-submit').disabled    = true;
   $('chat-input').disabled     = true;
-  appendUserBubble(q);
+  appendUserBubble(display);
   window.api.chat(q);
 }
 $('chat-submit').addEventListener('click', () => submitChat());
-$('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitChat(); });
+$('chat-input').addEventListener('keydown', (e) => {
+  if (slashOpen) {
+    if (e.key === 'Escape')   { closeSlash(); e.preventDefault(); return; }
+    if (e.key === 'ArrowDown') { slashIdx = (slashIdx + 1) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
+    if (e.key === 'ArrowUp')   { slashIdx = (slashIdx - 1 + SLASH_MODES.length) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
+    if (e.key === 'Tab' || e.key === 'Enter') { selectSlash(slashIdx); e.preventDefault(); return; }
+  }
+  if (e.key === 'Enter') submitChat();
+});
 
 document.querySelectorAll('.ai-chip').forEach((btn) => {
-  btn.addEventListener('click', () => submitChat(btn.dataset.q));
+  btn.addEventListener('click', () => {
+    selectedMode = SLASH_MODES.find((m) => m.key === 'ask');
+    submitChat(btn.dataset.q);
+  });
 });
 
 // ── Phrases panel ──
@@ -326,7 +421,7 @@ function renderPhrases() {
   const container = $('panel-phrases');
   const list = PHRASES[state.lang];
   if (!list) {
-    container.innerHTML = `<div style="font-size:13px;color:oklch(0.6 0.015 280);padding:20px 4px;">Chưa có câu sẵn cho ngôn ngữ này.</div>`;
+    container.innerHTML = `<div style="font-size:13px;color:oklch(0.6 0.015 280);padding:20px 4px;">No phrases available for this language.</div>`;
     return;
   }
   container.innerHTML = list.map((group) => `
@@ -339,6 +434,20 @@ function renderPhrases() {
         </div>`).join('')}
     </div>`).join('');
 }
+
+// ── Clear actions ──
+$('btn-clear-chat').addEventListener('click', () => {
+  $('chat-history').innerHTML = '';
+  chatTyping = null;
+});
+
+$('btn-clear-transcript').addEventListener('click', () => {
+  $('committed-lines').innerHTML = '';
+  $('live-line').innerHTML = '';
+  state.lines = [];
+  state.liveText = '';
+  state.liveTranslation = '';
+});
 
 // ── Sidebar tabs ──
 let activeTab = 'chat';

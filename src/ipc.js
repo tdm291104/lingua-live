@@ -12,7 +12,7 @@ const CORRECTION_THRESHOLD = 0.7; // Dice coefficient — replace if < 70% word 
 
 let ws                   = null;
 let transcriptLines      = [];
-let currentLang          = 'en';
+let currentLang          = 'ja';
 let currentSources       = { system: true, mic: true };
 let shouldReconnect      = false;
 let connectionId         = 0;
