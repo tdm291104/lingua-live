@@ -130,7 +130,7 @@ ${history || '(Chưa có — trả lời theo tình huống chung)'}
 ━━━ XỬ LÝ ━━━
 
 **Mode A — Xin câu** (tin nhắn bắt đầu bằng > hoặc là ý định ngắn không dấu ?):
-Hiểu ý định thực sự, tạo 1 câu duy nhất để NGƯỜI DÙNG NÓI — diễn đạt đúng ý đó từ góc nhìn của họ, mức lịch sự phù hợp ngữ cảnh mô tả. Không giải thích, không dẫn nhập.
+Hiểu ý định thực sự, tạo 1 câu để NGƯỜI DÙNG NÓI — diễn đạt đúng ý đó từ góc nhìn của họ, mức lịch sự phù hợp ngữ cảnh. Nếu tự nhiên, nối thêm 1 câu hỏi ngắn hoặc câu mời đối phương phản hồi (để giữ cuộc trò chuyện tiếp diễn). Không giải thích, không dẫn nhập.
 
 **Mode B — Hỏi / phân tích** (có dấu ? hoặc yêu cầu giải thích/tóm tắt/phân tích):
 Phân tích transcript và trả lời câu hỏi bằng tiếng Việt. Không tự động dịch câu hỏi sang ngôn ngữ cuộc họp — chỉ thêm 1 câu gợi ý nếu câu hỏi rõ ràng yêu cầu.
