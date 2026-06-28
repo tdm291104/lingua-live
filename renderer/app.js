@@ -34,6 +34,24 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const body = document.body;
 
+// ── Utilities ──
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  $('toast-container').appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toastOut 0.2s ease forwards';
+    setTimeout(() => el.remove(), 200);
+  }, 1800);
+}
+
+const COPY_SVG = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M1 8V2a1 1 0 0 1 1-1h6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`;
+
 // ── Sidebar toggle ──
 function applySidebarState() {
   body.classList.toggle('sidebar-hidden', !state.sidebarOpen);
@@ -60,6 +78,7 @@ function applyListeningState() {
   $('btn-eq-section').style.display = listening ? 'flex' : 'none';
 
   $('sidebar-sub').textContent = listening ? 'Live' : 'Paused';
+  $('status-dot').classList.toggle('live', listening);
 }
 
 // ── Source buttons (segmented group) ──
@@ -106,6 +125,7 @@ function renderLangLists() {
     applyLangPickerButton();
     window.api.changeLang(state.lang);
     if (activeTab === 'phrases') renderPhrases();
+    if (state.listening) showToast(`Source switched to ${LANGS[c].name} — stream restarted`);
   });
   buildList('lang-tgt-list', TGT_LANGS, state.targetLang, (c) => {
     state.targetLang = c;
@@ -132,10 +152,11 @@ function closeLangPopover() {
 
 function committedLineHTML(line) {
   return `
-    <div class="anim-bubble" style="border-left:2px solid oklch(0.88 0.006 270);padding-left:14px;margin-bottom:18px;">
+    <div class="transcript-line anim-bubble" style="position:relative;border-left:2px solid oklch(0.88 0.006 270);padding:0 28px 0 14px;margin-bottom:18px;">
       <div style="font-family:'Geist Mono',monospace;font-size:10.5px;color:oklch(0.72 0.01 270);margin-bottom:4px;">${escapeHTML(line.timestamp)}</div>
-      <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);">${escapeHTML(line.text)}</div>
+      <div style="font-size:14.5px;line-height:1.5;color:oklch(0.28 0.015 280);word-break:break-word;overflow-wrap:anywhere;">${escapeHTML(line.text)}</div>
       <div data-translation style="font-size:14px;line-height:1.5;color:oklch(0.52 0.04 290);margin-top:4px;">${line.translation ? escapeHTML(line.translation) : ''}</div>
+      <button class="copy-btn transcript-copy" title="Copy">${COPY_SVG}</button>
     </div>`;
 }
 
@@ -148,7 +169,11 @@ function liveLineHTML(text, translation) {
     </div>`;
 }
 
+let transcriptScrollLocked = false;
+let chatScrollLocked = false;
+
 function scrollToBottom() {
+  if (transcriptScrollLocked) return;
   const c = $('transcript-scroll');
   c.scrollTop = c.scrollHeight;
 }
@@ -157,8 +182,10 @@ function appendFinalLine(line, lineIndex) {
   const wrapper = document.createElement('div');
   wrapper.dataset.lineIndex = lineIndex;
   wrapper.innerHTML = committedLineHTML(line);
+  wrapper.querySelector('.transcript-copy')?.addEventListener('click', () => copyToClipboard(line.text));
   $('committed-lines').appendChild(wrapper);
   $('live-line').innerHTML = '';
+  transcriptScrollLocked = false;
   scrollToBottom();
 }
 
@@ -170,17 +197,37 @@ function updateLiveLine(text) {
 
 // ── Chat UI ──
 let chatTyping = null;
+let chatHadError = false;
 
 function chatScrollToBottom() {
+  if (chatScrollLocked) return;
   const c = $('chat-history');
   c.scrollTop = c.scrollHeight;
 }
 
+function renderChatEmptyState() {
+  if ($('chat-empty-state')) return;
+  const el = document.createElement('div');
+  el.id = 'chat-empty-state';
+  el.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px;';
+  el.innerHTML = `
+    <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;">✦</div>
+    <div style="font-size:13px;font-weight:600;color:oklch(0.4 0.02 280);">AI Assistant</div>
+    <div style="font-size:12px;line-height:1.6;color:oklch(0.6 0.015 280);max-width:200px;">Use the chips above or press <span style="font-family:'Geist Mono',monospace;background:oklch(0.93 0.005 270);padding:1px 5px;border-radius:4px;font-size:11px;">/</span> to pick a mode</div>`;
+  $('chat-history').appendChild(el);
+}
+
+function removeEmptyChatState() {
+  $('chat-empty-state')?.remove();
+}
+
 function appendUserBubble(text) {
+  removeEmptyChatState();
   const el = document.createElement('div');
   el.style.cssText = 'display:flex;justify-content:flex-end;';
   el.innerHTML = `<div style="background:oklch(0.96 0.03 295);border:1px solid oklch(0.88 0.05 295);border-radius:12px 12px 2px 12px;padding:9px 12px;max-width:85%;font-size:13px;color:oklch(0.38 0.1 295);line-height:1.45;">${escapeHTML(text)}</div>`;
   $('chat-history').appendChild(el);
+  chatScrollLocked = false;
   chatScrollToBottom();
 }
 
@@ -189,16 +236,28 @@ function appendAiBubble() {
   el.style.cssText = 'display:flex;align-items:flex-start;gap:8px;';
   el.innerHTML = `
     <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">✦</div>
-    <div class="ai-bubble-text" style="background:oklch(0.995 0.002 270);border:1px solid oklch(0.91 0.005 270);border-radius:2px 12px 12px 12px;padding:9px 12px;font-size:13px;line-height:1.55;color:oklch(0.35 0.015 280);white-space:pre-wrap;"></div>`;
+    <div class="ai-bubble-wrap" style="position:relative;flex:1;min-width:0;">
+      <div class="ai-bubble-text" style="background:oklch(0.995 0.002 270);border:1px solid oklch(0.91 0.005 270);border-radius:2px 12px 12px 12px;padding:9px 12px;font-size:13px;line-height:1.55;color:oklch(0.35 0.015 280);white-space:pre-wrap;word-break:break-word;"></div>
+      <button class="copy-btn" title="Copy">${COPY_SVG}</button>
+    </div>`;
+  const textEl = el.querySelector('.ai-bubble-text');
+  el.querySelector('.copy-btn').addEventListener('click', () => copyToClipboard(textEl.textContent));
   $('chat-history').appendChild(el);
   chatScrollToBottom();
-  return el.querySelector('.ai-bubble-text');
+  return textEl;
 }
 
 // ── IPC subscriptions ──
 window.api.onStatus(({ listening }) => {
   state.listening = listening;
-  if (!listening) { state.liveText = ''; updateLiveLine(''); }
+  if (listening) {
+    const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    $('session-date').textContent = now;
+    transcriptScrollLocked = false;
+  } else {
+    state.liveText = '';
+    updateLiveLine('');
+  }
   applyListeningState();
 });
 
@@ -213,7 +272,6 @@ window.api.onFinal((line) => {
   state.liveText = '';
   state.liveTranslation = '';
   appendFinalLine(line, lineIndex);
-  $('session-date').textContent = line.timestamp;
 });
 
 window.api.onSubtitleStreamStart(() => {
@@ -264,11 +322,30 @@ window.api.onChatToken(({ token }) => {
   chatScrollToBottom();
 });
 
+function setChipsLoading(loading) {
+  document.querySelectorAll('.ai-chip').forEach((btn) => {
+    btn.disabled = loading;
+    btn.style.opacity = loading ? '0.45' : '1';
+    btn.style.pointerEvents = loading ? 'none' : '';
+  });
+}
+
+window.api.onChatError(() => {
+  chatHadError = true;
+  const el = chatTyping || appendAiBubble();
+  if (!el.textContent.trim()) {
+    el.textContent = 'Something went wrong. Please try again.';
+    el.style.color = 'oklch(0.55 0.15 25)';
+  }
+  chatTyping = null;
+});
+
 window.api.onChatDone(() => {
   chatTyping = null;
-  $('chat-submit').textContent = '↑';
-  $('chat-submit').disabled    = false;
-  $('chat-input').disabled     = false;
+  chatHadError = false;
+  $('chat-submit').innerHTML = '↑';
+  $('chat-submit').disabled  = false;
+  setChipsLoading(false);
 });
 
 // ── Controls ──
@@ -302,6 +379,28 @@ $('btn-lang-picker').addEventListener('click', (e) => {
 
 document.addEventListener('click', (e) => {
   if (langPopoverOpen && !$('lang-picker-wrap').contains(e.target)) closeLangPopover();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (langPopoverOpen) { closeLangPopover(); return; }
+    if (slashOpen) { closeSlash(); return; }
+  }
+  // Space to toggle listen (when not typing)
+  if (e.code === 'Space' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const tag = document.activeElement?.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault();
+      toggleListen();
+    }
+  }
+});
+
+$('slash-hint-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('chat-input').value = '/';
+  $('chat-input').focus();
+  openSlash();
 });
 
 // ── Slash command picker ──
@@ -391,10 +490,10 @@ function submitChat(message) {
   if (selectedMode) q = selectedMode.transform(q);
   clearMode();
 
-  $('chat-input').value        = '';
-  $('chat-submit').textContent = '⏳';
-  $('chat-submit').disabled    = true;
-  $('chat-input').disabled     = true;
+  $('chat-input').value       = '';
+  $('chat-submit').innerHTML  = '<span class="btn-spinner"></span>';
+  $('chat-submit').disabled   = true;
+  setChipsLoading(true);
   appendUserBubble(display);
   window.api.chat(q);
 }
@@ -421,27 +520,65 @@ function renderPhrases() {
   const container = $('panel-phrases');
   const list = PHRASES[state.lang];
   if (!list) {
-    container.innerHTML = `<div style="font-size:13px;color:oklch(0.6 0.015 280);padding:20px 4px;">No phrases available for this language.</div>`;
+    container.innerHTML = `
+      <div style="text-align:center;padding:32px 16px;">
+        <div style="font-size:22px;margin-bottom:10px;">🌐</div>
+        <div style="font-size:13px;font-weight:600;color:oklch(0.4 0.02 280);margin-bottom:6px;">No phrases yet for this language</div>
+        <div style="font-size:12px;color:oklch(0.6 0.015 280);line-height:1.6;">Switch to <strong>English</strong> or <strong>Japanese</strong> to browse sample phrases.</div>
+      </div>`;
     return;
   }
   container.innerHTML = list.map((group) => `
     <div style="margin-bottom:18px;">
       <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid oklch(0.93 0.005 270);">${group.category}</div>
       ${group.items.map((item, i) => `
-        <div style="padding:6px 0;${i < group.items.length - 1 ? 'border-bottom:1px solid oklch(0.95 0.003 270);' : ''}">
+        <div class="phrase-item" data-phrase="${escapeHTML(item.phrase)}" style="${i < group.items.length - 1 ? 'border-bottom:1px solid oklch(0.95 0.003 270);' : ''}">
           <div style="font-size:13px;font-weight:500;color:oklch(0.28 0.015 280);line-height:1.45;">${escapeHTML(item.phrase)}</div>
           <div style="font-size:11.5px;color:oklch(0.55 0.04 290);margin-top:1px;line-height:1.4;">${escapeHTML(item.meaning)}</div>
         </div>`).join('')}
     </div>`).join('');
+
+  container.querySelectorAll('.phrase-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      copyToClipboard(el.dataset.phrase);
+    });
+  });
 }
 
-// ── Clear actions ──
-$('btn-clear-chat').addEventListener('click', () => {
+// ── Clear actions (confirm on second click within 2s) ──
+function makeClearable(btn, action) {
+  let pending = false;
+  let timer   = null;
+  const origBg    = btn.style.background ?? '';
+  const origColor = btn.style.color ?? '';
+
+  btn.addEventListener('click', () => {
+    if (pending) {
+      clearTimeout(timer);
+      pending = false;
+      btn.style.background = origBg;
+      btn.style.color      = origColor;
+      action();
+    } else {
+      pending = true;
+      btn.style.background = 'oklch(0.93 0.1 25)';
+      btn.style.color      = 'oklch(0.45 0.18 25)';
+      timer = setTimeout(() => {
+        pending = false;
+        btn.style.background = origBg;
+        btn.style.color      = origColor;
+      }, 2000);
+    }
+  });
+}
+
+makeClearable($('btn-clear-chat'), () => {
   $('chat-history').innerHTML = '';
   chatTyping = null;
+  renderChatEmptyState();
 });
 
-$('btn-clear-transcript').addEventListener('click', () => {
+makeClearable($('btn-clear-transcript'), () => {
   $('committed-lines').innerHTML = '';
   $('live-line').innerHTML = '';
   state.lines = [];
@@ -449,16 +586,32 @@ $('btn-clear-transcript').addEventListener('click', () => {
   state.liveTranslation = '';
 });
 
+// ── Scroll-lock detection ──
+$('transcript-scroll').addEventListener('scroll', () => {
+  const el = $('transcript-scroll');
+  transcriptScrollLocked = el.scrollHeight - el.scrollTop - el.clientHeight > 80;
+});
+
+$('chat-history').addEventListener('scroll', () => {
+  const el = $('chat-history');
+  chatScrollLocked = el.scrollHeight - el.scrollTop - el.clientHeight > 80;
+});
+
 // ── Sidebar tabs ──
 let activeTab = 'chat';
+let savedChatScroll = null;
 
 function switchTab(tab) {
+  if (activeTab === 'chat') savedChatScroll = $('chat-history').scrollTop;
   activeTab = tab;
   $('panel-chat').style.display    = tab === 'chat'    ? 'flex'   : 'none';
   $('panel-phrases').style.display = tab === 'phrases' ? 'block'  : 'none';
   $('tab-chat').classList.toggle('sidebar-tab-active',    tab === 'chat');
   $('tab-phrases').classList.toggle('sidebar-tab-active', tab === 'phrases');
   if (tab === 'phrases') renderPhrases();
+  if (tab === 'chat' && savedChatScroll !== null) {
+    requestAnimationFrame(() => { $('chat-history').scrollTop = savedChatScroll; });
+  }
 }
 
 $('tab-chat').addEventListener('click',    () => switchTab('chat'));
@@ -470,3 +623,4 @@ applySourceStyles();
 applyLangPickerButton();
 applySidebarState();
 switchTab('chat');
+renderChatEmptyState();

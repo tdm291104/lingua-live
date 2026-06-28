@@ -199,7 +199,9 @@ function setup(mainWindow) {
         (token) => send('ai:token', { token }),
         abort.signal,
       );
-    } catch {}
+    } catch {
+      send('ai:error', {});
+    }
     send('ai:done', {});
   });
 }

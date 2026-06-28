@@ -39,7 +39,7 @@ function connect(lang, apiKey, { onInterim, onFinal, onClose, onOpen }) {
   });
 
   const timestamp = () =>
-    new Date().toLocaleTimeString('vi-VN', {
+    new Date().toLocaleTimeString('en-US', {
       hour: '2-digit', minute: '2-digit', second: '2-digit',
     });
 

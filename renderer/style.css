@@ -30,6 +30,64 @@ body.sidebar-hidden #sidebar { display: none; }
 body.state-idle      .when-idle      { display: flex; }
 body.state-listening .when-listening { display: flex; }
 
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-spinner {
+  width: 12px; height: 12px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.55s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ── Toast ── */
+@keyframes toastIn  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+.toast {
+  background: oklch(0.22 0.015 280);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-family: 'Geist', sans-serif;
+  animation: toastIn 0.2s ease;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Copy button ── */
+.copy-btn {
+  position: absolute; top: 7px; right: 7px;
+  width: 22px; height: 22px;
+  border: none; border-radius: 5px;
+  background: transparent;
+  color: oklch(0.72 0.015 280);
+  cursor: pointer;
+  display: none;
+  align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s;
+  padding: 0;
+}
+.copy-btn:hover { background: oklch(0.91 0.006 270); color: oklch(0.4 0.02 280); }
+.ai-bubble-wrap:hover .copy-btn,
+.transcript-line:hover .copy-btn { display: flex; }
+
+/* ── Phrase item hover ── */
+.phrase-item { cursor: pointer; border-radius: 6px; transition: background 0.1s; padding: 6px 8px; margin: 0 -8px; }
+.phrase-item:hover { background: oklch(0.95 0.008 280); }
+.phrase-item:hover::after { content: 'Copy'; font-size: 10px; color: oklch(0.6 0.08 295); float: right; }
+
+/* ── Status dot ── */
+#status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: oklch(0.8 0.01 280);
+  flex-shrink: 0;
+  transition: background 0.4s;
+}
+#status-dot.live { background: oklch(0.72 0.18 145); box-shadow: 0 0 0 2px oklch(0.72 0.18 145/0.25); }
+
 /* ── Animations ── */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale(1); }

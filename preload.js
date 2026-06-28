@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   onStatus:   (cb) => { ipcRenderer.removeAllListeners('status:changed');      ipcRenderer.on('status:changed',      (_, d) => cb(d)); },
   onChatToken: (cb) => { ipcRenderer.removeAllListeners('ai:token'); ipcRenderer.on('ai:token', (_, d) => cb(d)); },
   onChatDone:  (cb) => { ipcRenderer.removeAllListeners('ai:done');  ipcRenderer.on('ai:done',  ()     => cb());  },
+  onChatError: (cb) => { ipcRenderer.removeAllListeners('ai:error'); ipcRenderer.on('ai:error', ()     => cb());  },
   onConnectionStatus: (cb) => { ipcRenderer.removeAllListeners('status:connection');   ipcRenderer.on('status:connection',   (_, d) => cb(d)); },
   onSubtitleStreamStart: (cb) => { ipcRenderer.removeAllListeners('subtitle:stream:start'); ipcRenderer.on('subtitle:stream:start', (_, d) => cb(d)); },
   onSubtitleStreamClear: (cb) => { ipcRenderer.removeAllListeners('subtitle:stream:clear'); ipcRenderer.on('subtitle:stream:clear', (_, d) => cb(d)); },
