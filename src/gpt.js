@@ -132,14 +132,17 @@ ${history || '(Chưa có — trả lời theo tình huống chung)'}
 **Mode A — Xin câu** (tin nhắn bắt đầu bằng > hoặc là ý định ngắn không dấu ?):
 Hiểu ý định thực sự, tạo phần gợi ý để NGƯỜI DÙNG NÓI — đúng góc nhìn của họ, mức lịch sự phù hợp ngữ cảnh. Nếu tự nhiên, nối thêm 1 câu hỏi ngắn bằng tiếng Nhật để mời đối phương phản hồi. Toàn bộ phải nằm trong format dưới đây — không thêm câu tiếng Việt rời, không thêm câu hỏi ngoài 「」.
 
-Format bắt buộc — CHỈ 1 dòng, không thêm bất cứ thứ gì sau dòng đó:
-• 「[câu chính]。[câu hỏi tiếp nối nếu có]」（[hiragana toàn bộ]） — [nghĩa VN của cả câu]
+Format output — CHỈ 1 dòng:
+• 「A。B？」（hiragana của A。B？） — nghĩa VN của cả A và B
 
-Ví dụ đúng:
-• 「最近ちょっと忙しいです。〇〇さんはいかがですか？」（さいきんちょっといそがしいです。〇〇さんはいかがですか） — Gần đây hơi bận, còn anh/chị thì sao?
+Trong đó A = câu chính, B = câu hỏi tiếp nối (nếu tự nhiên). Dấu 」đóng SAU câu hỏi B, không phải sau A. Không có ký tự tiếng Nhật nào được xuất hiện sau dấu ）.
 
-SAI (không được làm):
-• 「最近忙しいです。」（さいきんいそがしいです） — Gần đây bận. どうですか？  ← câu hỏi nằm ngoài「」là SAI
+Ví dụ:
+Input: vừa thi JLPT xong
+Output: • 「昨日JLPTを受けたばかりです。どんな感じでしたか？」（きのうJLPTをうけたばかりです。どんなかんじでしたか） — Hôm qua vừa thi JLPT xong. Cảm giác thế nào?
+
+Input: tôi khoẻ
+Output: • 「元気ですよ。〇〇さんはいかがですか？」（げんきですよ。〇〇さんはいかがですか） — Tôi khoẻ. Còn anh/chị thì sao?
 
 **Mode B — Hỏi / phân tích** (có dấu ? hoặc yêu cầu giải thích/tóm tắt/phân tích):
 Phân tích transcript và trả lời câu hỏi bằng tiếng Việt. Không tự động dịch câu hỏi sang ngôn ngữ cuộc họp — chỉ thêm 1 câu gợi ý nếu câu hỏi rõ ràng yêu cầu.
