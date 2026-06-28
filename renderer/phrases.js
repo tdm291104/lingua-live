@@ -160,5 +160,28 @@ const PHRASES = {
         { phrase: 'よろしくお願いいたします。',         meaning: 'Rất mong nhận được sự hợp tác.' },
       ],
     },
+    {
+      category: '行動の文型 · Action Grammar',
+      items: [
+        { phrase: '～てください',         meaning: 'Yêu cầu lịch sự — "Làm ơn hãy…" / 窓を閉めてください。' },
+        { phrase: '～てもいい',           meaning: 'Xin phép / cho phép — "Được không nếu…?" / ここに座ってもいいですか？' },
+        { phrase: '～なければならない',   meaning: 'Bắt buộc, phải làm — "Phải…" / レポートを出さなければならない。' },
+        { phrase: '～ている',             meaning: 'Đang diễn ra / trạng thái kéo dài — "Đang…" / 会議をしています。' },
+        { phrase: '～たことがある',       meaning: 'Từng có kinh nghiệm — "Đã từng…" / 日本に行ったことがある。' },
+      ],
+    },
+    {
+      category: '感情の文型 · Emotion Grammar',
+      items: [
+        { phrase: '～たい',       meaning: 'Muốn làm gì (ngôi 1) — "Muốn…" / 日本語を話したい。' },
+        { phrase: '～ほしい',     meaning: 'Muốn có / muốn người khác làm — "Muốn được…" / もっと時間がほしい。' },
+        { phrase: '～そう',       meaning: 'Trông có vẻ (cảm quan trực tiếp) — "Có vẻ…" / 雨が降りそう。' },
+        { phrase: '～ようだ',     meaning: 'Có vẻ / giống như (suy luận khách quan) — "Dường như…" / 彼は疲れているようだ。' },
+        { phrase: '～かもしれない', meaning: 'Có thể (không chắc ~50%) — "Có lẽ…" / 明日は休みかもしれない。' },
+        { phrase: '～らしい',     meaning: 'Nghe nói / có vẻ (thông tin từ bên ngoài) — "Nghe nói…" / 彼は来ないらしい。' },
+        { phrase: '～と思う',     meaning: 'Ý kiến cá nhân — "Tôi nghĩ…" / これは難しいと思う。' },
+        { phrase: '～気がする',   meaning: 'Linh cảm / cảm giác mơ hồ — "Tôi có cảm giác…" / 何か忘れた気がする。' },
+      ],
+    },
   ],
 };
