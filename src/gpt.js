@@ -74,6 +74,25 @@ const STYLE_GUIDE = {
 - な/ぞ/ぜ/わ: quá thô/masculine — không dùng trong môi trường công sở
 Thêm particle phù hợp vào cuối câu để tự nhiên hơn.
 
+**Mẫu ngữ pháp — chọn đúng theo ý định:**
+
+*Hành động* (mô tả việc làm, yêu cầu, nghĩa vụ, kinh nghiệm):
+- ～てください → yêu cầu lịch sự
+- ～てもいい → xin phép / cho phép
+- ～なければならない → bắt buộc, phải làm
+- ～ている → đang diễn ra / trạng thái kéo dài
+- ～たことがある → từng có kinh nghiệm
+
+*Cảm xúc / ý kiến* (mong muốn, suy đoán, cảm nhận, quan điểm):
+- ～たい → muốn làm (ngôi 1)
+- ～ほしい → muốn có / muốn người khác làm
+- ～そう → trông có vẻ (cảm quan trực tiếp)
+- ～ようだ → có vẻ (suy luận khách quan)
+- ～かもしれない → có thể (~50% chắc)
+- ～らしい → nghe nói / có vẻ (thông tin từ ngoài)
+- ～と思う → tôi nghĩ (ý kiến cá nhân)
+- ～気がする → tôi có cảm giác (linh cảm)
+
 **Số và thời gian:** Khi câu có số, luôn thêm hiragana đọc trong ngoặc đơn ngay sau.
 
 **Format:** • 「câu」（hiragana toàn câu） — nghĩa VN ngắn`,
