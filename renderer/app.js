@@ -557,11 +557,6 @@ $('chat-input').addEventListener('input', () => {
   autoResizeInput();
 
   clearSuggestion();
-  clearTimeout(predictDebounce);
-  const trimmed = val.trim();
-  if (trimmed.length >= 3 && !trimmed.startsWith('/')) {
-    predictDebounce = setTimeout(() => triggerPredict(trimmed), 800);
-  }
 });
 
 document.addEventListener('click', (e) => {
@@ -600,14 +595,7 @@ function submitChat(message) {
 $('chat-submit').addEventListener('click', () => submitChat());
 let isComposing = false;
 $('chat-input').addEventListener('compositionstart', () => { isComposing = true; });
-$('chat-input').addEventListener('compositionend', () => {
-  isComposing = false;
-  const trimmed = $('chat-input').value.trim();
-  clearTimeout(predictDebounce);
-  if (trimmed.length >= 3 && !trimmed.startsWith('/')) {
-    predictDebounce = setTimeout(() => triggerPredict(trimmed), 800);
-  }
-});
+$('chat-input').addEventListener('compositionend', () => { isComposing = false; });
 
 $('chat-input').addEventListener('keydown', (e) => {
   if (slashOpen) {
@@ -615,6 +603,14 @@ $('chat-input').addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') { slashIdx = (slashIdx + 1) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
     if (e.key === 'ArrowUp')   { slashIdx = (slashIdx - 1 + SLASH_MODES.length) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
     if (e.key === 'Tab' || e.key === 'Enter') { selectSlash(slashIdx); e.preventDefault(); return; }
+  }
+  if (e.key === 'ArrowUp' && !slashOpen) {
+    const trimmed = $('chat-input').value.trim();
+    if (trimmed.length >= 2 && !trimmed.startsWith('/')) {
+      e.preventDefault();
+      triggerPredict(trimmed);
+    }
+    return;
   }
   if (e.key === 'Tab' && activeSuggestion) {
     e.preventDefault();
