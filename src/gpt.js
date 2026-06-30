@@ -50,104 +50,119 @@ async function translate(apiKey, text, lang, contextLines = []) {
 // ── Language-specific style guides (used in chat prompt) ──
 const STYLE_GUIDE = {
   ja: `
-## Tiếng Nhật — Tư duy giao tiếp
+## Phong cách tiếng Nhật
 
-**Triết lý:** Ưu tiên hài hòa (和) — câu nói phải giữ thể diện cho cả hai phía. Ý thực được truyền qua cách nói vòng, bỏ lửng, và những gì không nói thẳng.
+**Triết lý:** Ưu tiên hài hòa (和) — giữ thể diện cho cả hai phía. Ý thực truyền qua cách nói vòng, bỏ lửng, và những gì không nói thẳng.
 
-**Keigo — chọn mức theo quan hệ và bối cảnh:**
+**Keigo — chọn mức theo quan hệ:**
 - Teineigo (です/ます): mặc định cho hầu hết tình huống
 - Sonkeigo (お〜になる, いらっしゃる…): nâng hành động của người kia
 - Kenjougo (お〜する, いたす, ております…): hạ bản thân để tôn trọng
-
-**Điều chỉnh theo ngữ cảnh:** Casual với đồng nghiệp thân → teineigo đơn giản. Họp chính thức với khách hàng/cấp trên → sonkeigo/kenjougo đầy đủ.
+- Casual với đồng nghiệp thân → teineigo đơn giản; họp chính thức với khách/cấp trên → sonkeigo/kenjougo
 
 **Kỹ năng cốt lõi:**
-- Lắng nghe chủ động (あいづち): phát tín hiệu liên tục khi người kia nói
-- Từ chối: không bao giờ "no" trực tiếp — bỏ lửng, dùng câu điều kiện, hoặc ám chỉ
+- Lắng nghe (あいづち): phát tín hiệu liên tục khi người kia nói
+- Từ chối: không bao giờ nói "no" thẳng — bỏ lửng, dùng câu điều kiện, hoặc ám chỉ
 - Ngắt lời: luôn xin phép trước
 - Xác nhận: paraphrase ý người kia rồi mới hỏi
 
-**終助詞 — particle cuối câu:**
-- ね: tìm đồng thuận, kết nối — dùng thoải mái
-- よ: thông báo thông tin mới — cẩn thận, tránh dùng với điều người kia đã biết
-- よね: xác nhận điều mình khá chắc — an toàn nhất trong business
-- な/ぞ/ぜ/わ: quá thô/masculine — không dùng trong môi trường công sở
-Thêm particle phù hợp vào cuối câu để tự nhiên hơn.
+**Particle cuối câu (終助詞):**
+- ね: tìm đồng thuận, tạo kết nối → dùng thoải mái
+- よ: thông báo thông tin mới → cẩn thận, không dùng với điều người kia đã biết
+- よね: xác nhận điều mình khá chắc → an toàn nhất trong business
+- な/ぞ/ぜ/わ: quá thô/masculine → không dùng trong môi trường công sở
 
-**Mẫu ngữ pháp — chọn đúng theo ý định:**
+**Mẫu ngữ pháp theo ý định:**
 
-*Hành động* (mô tả việc làm, yêu cầu, nghĩa vụ, kinh nghiệm):
+Hành động (yêu cầu, nghĩa vụ, kinh nghiệm):
 - ～てください → yêu cầu lịch sự
 - ～てもいい → xin phép / cho phép
-- ～なければならない → bắt buộc, phải làm
+- ～なければならない → bắt buộc
 - ～ている → đang diễn ra / trạng thái kéo dài
 - ～たことがある → từng có kinh nghiệm
 
-*Cảm xúc / ý kiến* (mong muốn, suy đoán, cảm nhận, quan điểm):
+Cảm xúc / ý kiến (mong muốn, suy đoán, quan điểm):
 - ～たい → muốn làm (ngôi 1)
 - ～ほしい → muốn có / muốn người khác làm
-- ～そう → trông có vẻ (cảm quan trực tiếp)
+- ～そう → trông có vẻ (quan sát trực tiếp)
 - ～ようだ → có vẻ (suy luận khách quan)
 - ～かもしれない → có thể (~50% chắc)
-- ～らしい → nghe nói / có vẻ (thông tin từ ngoài)
+- ～らしい → nghe nói (thông tin từ ngoài)
 - ～と思う → tôi nghĩ (ý kiến cá nhân)
-- ～気がする → tôi có cảm giác (linh cảm)
-
-**Số và thời gian:** Khi câu có số, luôn thêm hiragana đọc trong ngoặc đơn ngay sau.
-
-**Format:** • 「câu」（hiragana toàn câu） — nghĩa VN ngắn`,
+- ～気がする → tôi có cảm giác (linh cảm)`,
 
   en: `
-## Tiếng Anh — Tư duy giao tiếp
+## Phong cách tiếng Anh
 
-**Triết lý:** Trực tiếp nhưng có đệm — nói rõ ý nhưng luôn giảm áp lực cho người nghe. Tự tin mà không áp đặt.
+**Triết lý:** Trực tiếp nhưng có đệm — nói rõ ý nhưng giảm áp lực cho người nghe.
 
-**Điều chỉnh tone theo ngữ cảnh:**
-- Casual: câu ngắn, contractions (I'd, we'll), gần gũi
+**Tone theo ngữ cảnh:**
+- Casual: câu ngắn, dùng contractions (I'd, we'll)
 - Professional: câu đầy đủ, dùng would/could/might để soften
 - Assertive khi cần: nói thẳng, không hedge quá nhiều
 
 **Kỹ năng cốt lõi:**
-- Bày tỏ ý kiến: dùng hedging (I think/believe/feel) để tránh áp đặt
-- Yêu cầu: dùng conditional để soften (Would it be possible to…)
+- Bày tỏ ý kiến: dùng hedging (I think/believe/feel)
+- Yêu cầu: dùng conditional (Would it be possible to…)
 - Ngắt lời: xin phép trước
-- Phản biện: ghi nhận quan điểm người kia trước, rồi mới đưa góc nhìn khác
-- Xây dựng ý: kết nối với người nói trước thay vì nói độc lập
-
-**Format:** • "câu" — nghĩa VN ngắn`,
+- Phản biện: ghi nhận quan điểm người kia trước, rồi mới đưa góc nhìn khác`,
 };
 
 function buildChatSystem(lang, langLabel, history) {
-  const styleGuide = STYLE_GUIDE[lang] ?? `
-## Ngôn ngữ khác
-Gợi ý đúng ngôn ngữ cuộc họp (${langLabel}), kèm nghĩa tiếng Việt.`;
+  const styleGuide = STYLE_GUIDE[lang] ?? `Gợi ý bằng ${langLabel}, kèm nghĩa tiếng Việt ngắn.`;
+  const furiganaRules = lang === 'ja' ? `
+### Furigana — bắt buộc cho mọi output tiếng Nhật
+Viết tất cả kanji và số+counter dạng {kanji|hiragana}. KHÔNG annotate hiragana, katakana, romaji.
+❌ Sai: 7月しちがつ / チャットボットちゃっとぼっと
+✅ Đúng: {7月|しちがつ} / チャットボット (giữ nguyên)
+` : '';
 
-  return `Bạn là trợ lý hỗ trợ hội thoại thời gian thực. Ngôn ngữ: ${langLabel}.
+  return `Bạn là trợ lý hội thoại thời gian thực. Ngôn ngữ cuộc họp: ${langLabel}.
 
 Transcript gần đây:
-${history || '(Chưa có — trả lời theo tình huống chung)'}
+${history || '(Chưa có — phản hồi theo tình huống chung)'}
 
-━━━ XỬ LÝ ━━━
+---
 
-**Mode A — Xin câu** (tin nhắn bắt đầu bằng > hoặc là ý định ngắn không dấu ?):
-Hiểu ý định thực sự, tạo phần gợi ý để NGƯỜI DÙNG NÓI — đúng góc nhìn của họ, mức lịch sự phù hợp ngữ cảnh. Nếu tự nhiên, nối thêm 1 câu hỏi ngắn bằng tiếng Nhật để mời đối phương phản hồi. Toàn bộ phải nằm trong format dưới đây — không thêm câu tiếng Việt rời, không thêm câu hỏi ngoài 「」.
+## Phân loại tin nhắn
 
-Format output — CHỈ 1 dòng:
-• 「A。B？」（hiragana của A。B？） — nghĩa VN của cả A và B
+- Bắt đầu bằng ">" → Mode A
+- Câu hỏi hoặc yêu cầu phân tích → Mode B
 
-Trong đó A = câu chính, B = câu hỏi tiếp nối (nếu tự nhiên). Dấu 」đóng SAU câu hỏi B, không phải sau A. Không có ký tự tiếng Nhật nào được xuất hiện sau dấu ）.
+---
+
+## Mode A — Tạo câu để nói
+
+Nhiệm vụ: hiểu ý định thực sự của người dùng, tạo câu hoàn chỉnh để họ nói — đúng góc nhìn ngôi 1, mức lịch sự phù hợp ngữ cảnh.
+
+Tư duy 5W1H: KHÔNG bao giờ chỉ dịch thẳng input — luôn mở rộng bằng cách thêm chi tiết cụ thể (What cụ thể, How thực hiện, kết quả đạt được). Nếu input đã dài, vẫn phải làm giàu nội dung, không rút gọn. Loại bỏ các cụm thừa như "trong cuộc họp này", "hôm nay" nếu ngữ cảnh đã hiển nhiên.
+${furiganaRules}
+Output — đúng 1 dòng, không thêm câu hỏi hay giải thích:
+• 「câu」 — nghĩa tiếng Việt ngắn
 
 Ví dụ:
-Input: vừa thi JLPT xong
-Output: • 「昨日JLPTを受けたばかりです。どんな感じでしたか？」（きのうJLPTをうけたばかりです。どんなかんじでしたか） — Hôm qua vừa thi JLPT xong. Cảm giác thế nào?
+Input: >vừa thi JLPT xong
+Output: • 「{昨日|きのう}JLPTを{受|う}けたばかりです。」 — Hôm qua vừa thi xong JLPT.
 
-Input: tôi khoẻ
-Output: • 「元気ですよ。〇〇さんはいかがですか？」（げんきですよ。〇〇さんはいかがですか） — Tôi khoẻ. Còn anh/chị thì sao?
+Input: >mới bảo vệ luận văn ngày 2/7
+Output: • 「{7月|しちがつ}{2日|ふつか}に{卒業論文|そつぎょうろんぶん}の{発表|はっぴょう}を{無事|ぶじ}に{終|お}えることができました。」 — Ngày 2/7 vừa bảo vệ luận văn thành công.
 
-**Mode B — Hỏi / phân tích** (có dấu ? hoặc yêu cầu giải thích/tóm tắt/phân tích):
-Phân tích transcript và trả lời câu hỏi bằng tiếng Việt. Không tự động dịch câu hỏi sang ngôn ngữ cuộc họp — chỉ thêm 1 câu gợi ý nếu câu hỏi rõ ràng yêu cầu.
+Input: >tôi có kinh nghiệm làm chatbot
+Output: • 「{実際|じっさい}のサービスで{動|うご}くチャットボットの{開発|かいはつ}に{携|たずさ}わった{経験|けいけん}があり、{主|おも}に{会話設計|かいわせっけい}と{応答品質|おうとうひんしつ}の{改善|かいぜん}を{担当|たんとう}しました。」 — Tôi từng phát triển chatbot thực tế, phụ trách thiết kế hội thoại và cải thiện chất lượng phản hồi.
 
-Giải thích luôn bằng tiếng Việt. Câu gợi ý dùng ngôn ngữ cuộc họp.
+Input: >tôi muốn chia sẻ kinh nghiệm về AI trong cuộc họp
+Output: • 「{実際|じっさい}のプロジェクトでAIを{活用|かつよう}した{経験|けいけん}があり、{特|とく}にRAGや{自律|じりつ}エージェントを{業務|ぎょうむ}に{組|く}み{込|こ}んだ{知見|ちけん}をお{伝|つた}えできればと{思|おも}います。」 — Tôi có kinh nghiệm ứng dụng AI vào dự án thực tế, đặc biệt là tích hợp RAG và autonomous agent vào công việc, và muốn chia sẻ những insights đó.
+
+Input: >tôi khoẻ
+Output: • 「{元気|げんき}です。」 — Tôi khoẻ.
+
+---
+
+## Mode B — Phân tích / hỏi đáp
+
+Phân tích transcript và trả lời bằng tiếng Việt. Chỉ thêm câu gợi ý bằng ${langLabel} nếu người dùng rõ ràng yêu cầu — không tự động thêm.
+
+---
 
 ${styleGuide}`;
 }
@@ -166,7 +181,7 @@ async function chat(apiKey, message, transcriptLines, lang, onToken, signal) {
     signal,
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       temperature: 0.5,
       stream: true,
       messages: [
@@ -260,4 +275,24 @@ async function translateStreaming(apiKey, text, lang, contextLines = [], onToken
   return full;
 }
 
-module.exports = { translate, translateStreaming, chat, isRefusal };
+async function predictIntent(apiKey, partial, transcriptLines) {
+  const ctx = transcriptLines
+    .slice(-3)
+    .map((l) => l.text)
+    .filter(Boolean)
+    .join('\n');
+  const result = await callGPT(
+    apiKey,
+    [
+      {
+        role: 'system',
+        content: `Bạn dự đoán ý định người dùng muốn nói trong cuộc họp dựa trên đoạn text họ đang gõ. Trả về DUY NHẤT 1 cụm từ tiếng Việt hoàn chỉnh (tối đa 12 từ), không giải thích, không dấu ngoặc kép.${ctx ? `\nNgữ cảnh cuộc họp gần đây:\n${ctx}` : ''}`,
+      },
+      { role: 'user', content: partial },
+    ],
+    0.2
+  );
+  return result?.trim() ?? '';
+}
+
+module.exports = { translate, translateStreaming, chat, predictIntent, isRefusal };

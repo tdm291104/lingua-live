@@ -199,6 +199,40 @@ function updateLiveLine(text) {
 let chatTyping = null;
 let chatHadError = false;
 
+function normalizeInlineFurigana(text) {
+  // Convert old-style 漢字かんじ → {漢字|かんじ} as fallback
+  // Pattern: one or more kanji/numbers+counter followed immediately by hiragana reading
+  return text.replace(/([一-鿿㐀-䶿0-9０-９]+)([ぁ-ゖ]+)/g, (_, kanji, reading) => {
+    return `{${kanji}|${reading}}`;
+  });
+}
+
+function parseJaFurigana(text) {
+  const normalized = normalizeInlineFurigana(text);
+  return normalized.split(/(\{[^|{}]+\|[^|{}]+\})/).map((part) => {
+    const m = part.match(/^\{([^|]+)\|([^}]+)\}$/);
+    if (m) return `<ruby>${escapeHTML(m[1])}<rt>${escapeHTML(m[2])}</rt></ruby>`;
+    return escapeHTML(part);
+  }).join('');
+}
+
+function postProcessChatBubble(el) {
+  const raw = el.textContent;
+  const lines = raw.split('\n');
+  const processed = lines.map((line) => {
+    const trimmed = line.trimStart();
+    if (!trimmed.startsWith('•')) return escapeHTML(line);
+    const m = trimmed.match(/^•\s*「([^」]*)」\s*[—–-]\s*(.+)$/s);
+    if (!m) return escapeHTML(line);
+    const phraseHTML = parseJaFurigana(m[1]);
+    // Strip {kanji|reading} → kanji only for clean copy text
+    const phraseClean = m[1].replace(/\{([^|]+)\|[^}]+\}/g, '$1');
+    el.dataset.copyText = `「${phraseClean}」 — ${m[2]}`;
+    return `• 「${phraseHTML}」\n<span class="chat-translation">↳ ${escapeHTML(m[2])}</span>`;
+  });
+  el.innerHTML = processed.join('\n');
+}
+
 function chatScrollToBottom() {
   if (chatScrollLocked) return;
   const c = $('chat-history');
@@ -213,7 +247,7 @@ function renderChatEmptyState() {
   el.innerHTML = `
     <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,oklch(0.72 0.14 295),oklch(0.62 0.17 290));color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;">✦</div>
     <div style="font-size:13px;font-weight:600;color:oklch(0.4 0.02 280);">AI Assistant</div>
-    <div style="font-size:12px;line-height:1.6;color:oklch(0.6 0.015 280);max-width:200px;">Use the chips above or press <span style="font-family:'Geist Mono',monospace;background:oklch(0.93 0.005 270);padding:1px 5px;border-radius:4px;font-size:11px;">/</span> to pick a mode</div>`;
+    <div style="font-size:12px;line-height:1.6;color:oklch(0.6 0.015 280);max-width:210px;">Gõ ý muốn nói → AI tạo câu. Dùng <span style="font-family:'Geist Mono',monospace;background:oklch(0.93 0.005 270);padding:1px 5px;border-radius:4px;font-size:11px;">/ask</span> để phân tích.</div>`;
   $('chat-history').appendChild(el);
 }
 
@@ -241,7 +275,7 @@ function appendAiBubble() {
       <button class="copy-btn" title="Copy">${COPY_SVG}</button>
     </div>`;
   const textEl = el.querySelector('.ai-bubble-text');
-  el.querySelector('.copy-btn').addEventListener('click', () => copyToClipboard(textEl.textContent));
+  el.querySelector('.copy-btn').addEventListener('click', () => copyToClipboard(textEl.dataset.copyText ?? textEl.textContent));
   $('chat-history').appendChild(el);
   chatScrollToBottom();
   return textEl;
@@ -341,6 +375,7 @@ window.api.onChatError(() => {
 });
 
 window.api.onChatDone(() => {
+  if (chatTyping && state.lang === 'ja') postProcessChatBubble(chatTyping);
   chatTyping = null;
   chatHadError = false;
   $('chat-submit').innerHTML = '↑';
@@ -463,7 +498,7 @@ function selectSlash(idx) {
 function clearMode() {
   selectedMode = null;
   $('mode-chip').style.display = 'none';
-  $('chat-input').placeholder  = 'Message or type / to pick a mode…';
+  $('chat-input').placeholder  = 'Ý muốn nói… (/ để hỏi AI)';
 }
 
 $('mode-chip-clear').addEventListener('click', () => { clearMode(); $('chat-input').focus(); });
@@ -474,6 +509,44 @@ function autoResizeInput() {
   el.style.height = el.scrollHeight + 'px';
 }
 
+// ── Autocomplete ──
+let predictDebounce  = null;
+let activeSuggestion = '';
+
+function showSuggestion(text) {
+  activeSuggestion = text;
+  const el = $('autocomplete-hint');
+  el.innerHTML = `<span class="hint-tab">Tab</span>${escapeHTML(text)}`;
+  el.style.display = 'block';
+}
+
+function clearSuggestion() {
+  activeSuggestion = '';
+  const el = $('autocomplete-hint');
+  el.style.display = 'none';
+  el.innerHTML = '';
+}
+
+$('autocomplete-hint').addEventListener('click', () => {
+  if (!activeSuggestion) return;
+  $('chat-input').value = activeSuggestion;
+  autoResizeInput();
+  clearSuggestion();
+  $('chat-input').focus();
+});
+
+function triggerPredict(val) {
+  window.api.predict(val);
+}
+
+window.api.onPredictResult(({ result }) => {
+  const current = $('chat-input').value.trim();
+  if (!result || !current) return;
+  if (result.trim().toLowerCase() !== current.toLowerCase()) {
+    showSuggestion(result.trim());
+  }
+});
+
 $('chat-input').addEventListener('input', () => {
   const val = $('chat-input').value;
   if (!selectedMode && (val === '/' || (val.startsWith('/') && !val.slice(1).includes(' ')))) {
@@ -482,11 +555,24 @@ $('chat-input').addEventListener('input', () => {
     closeSlash();
   }
   autoResizeInput();
+
+  clearSuggestion();
+  clearTimeout(predictDebounce);
+  const trimmed = val.trim();
+  if (trimmed.length >= 3 && !trimmed.startsWith('/')) {
+    predictDebounce = setTimeout(() => triggerPredict(trimmed), 800);
+  }
 });
 
 document.addEventListener('click', (e) => {
   if (slashOpen && !$('slash-popover').contains(e.target) && e.target !== $('chat-input')) closeSlash();
 });
+
+const ANALYSIS_STARTS = /^(tóm tắt|phân tích|giải thích|họ (vừa |đang )?nói|transcript|nãy (họ |người ta )?nói)/i;
+
+function isQuestion(text) {
+  return ANALYSIS_STARTS.test(text);
+}
 
 function submitChat(message) {
   let q = (message ?? $('chat-input').value).trim();
@@ -494,11 +580,17 @@ function submitChat(message) {
   closeSlash();
 
   const display = q;
-  if (selectedMode) q = selectedMode.transform(q);
+  if (selectedMode) {
+    q = selectedMode.transform(q);
+  } else if (!isQuestion(q)) {
+    q = '>' + q;
+  }
   clearMode();
 
   $('chat-input').value        = '';
   $('chat-input').style.height = '';
+  clearSuggestion();
+  clearTimeout(predictDebounce);
   $('chat-submit').innerHTML  = '<span class="btn-spinner"></span>';
   $('chat-submit').disabled   = true;
   setChipsLoading(true);
@@ -506,6 +598,17 @@ function submitChat(message) {
   window.api.chat(q);
 }
 $('chat-submit').addEventListener('click', () => submitChat());
+let isComposing = false;
+$('chat-input').addEventListener('compositionstart', () => { isComposing = true; });
+$('chat-input').addEventListener('compositionend', () => {
+  isComposing = false;
+  const trimmed = $('chat-input').value.trim();
+  clearTimeout(predictDebounce);
+  if (trimmed.length >= 3 && !trimmed.startsWith('/')) {
+    predictDebounce = setTimeout(() => triggerPredict(trimmed), 800);
+  }
+});
+
 $('chat-input').addEventListener('keydown', (e) => {
   if (slashOpen) {
     if (e.key === 'Escape')   { closeSlash(); e.preventDefault(); return; }
@@ -513,12 +616,26 @@ $('chat-input').addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp')   { slashIdx = (slashIdx - 1 + SLASH_MODES.length) % SLASH_MODES.length; highlightSlash(); e.preventDefault(); return; }
     if (e.key === 'Tab' || e.key === 'Enter') { selectSlash(slashIdx); e.preventDefault(); return; }
   }
+  if (e.key === 'Tab' && activeSuggestion) {
+    e.preventDefault();
+    $('chat-input').value = activeSuggestion;
+    autoResizeInput();
+    clearSuggestion();
+    clearTimeout(predictDebounce);
+    return;
+  }
+  if (e.key === 'Escape' && activeSuggestion) {
+    clearSuggestion();
+    clearTimeout(predictDebounce);
+    e.preventDefault();
+    return;
+  }
   if (e.key === 'Backspace' && !$('chat-input').value && selectedMode) {
     clearMode();
     e.preventDefault();
     return;
   }
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
+  if (e.key === 'Enter' && !e.shiftKey && !isComposing) { e.preventDefault(); submitChat(); }
 });
 
 document.querySelectorAll('.ai-chip').forEach((btn) => {
@@ -544,11 +661,17 @@ function renderPhrases() {
   container.innerHTML = list.map((group) => `
     <div style="margin-bottom:18px;">
       <div style="font-size:10.5px;font-weight:700;color:oklch(0.6 0.015 280);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid oklch(0.93 0.005 270);">${group.category}</div>
-      ${group.items.map((item, i) => `
-        <div class="phrase-item" data-phrase="${escapeHTML(item.phrase)}" style="${i < group.items.length - 1 ? 'border-bottom:1px solid oklch(0.95 0.003 270);' : ''}">
-          <div style="font-size:13px;font-weight:500;color:oklch(0.28 0.015 280);line-height:1.45;">${escapeHTML(item.phrase)}</div>
-          <div style="font-size:11.5px;color:oklch(0.55 0.04 290);margin-top:1px;line-height:1.4;">${escapeHTML(item.meaning)}</div>
-        </div>`).join('')}
+      ${group.items.map((item, i) => {
+        const isJa = state.lang === 'ja';
+        const cleanPhrase = item.phrase.replace(/\{([^|]+)\|[^}]+\}/g, '$1');
+        const phraseHTML  = isJa ? parseJaFurigana(item.phrase)  : escapeHTML(item.phrase);
+        const meaningHTML = isJa ? parseJaFurigana(item.meaning) : escapeHTML(item.meaning);
+        return `
+        <div class="phrase-item" data-phrase="${escapeHTML(cleanPhrase)}" style="${i < group.items.length - 1 ? 'border-bottom:1px solid oklch(0.95 0.003 270);' : ''}">
+          <div style="font-size:13px;font-weight:500;color:oklch(0.28 0.015 280);line-height:1.6;">${phraseHTML}</div>
+          <div style="font-size:11.5px;color:oklch(0.55 0.04 290);margin-top:1px;line-height:1.5;">${meaningHTML}</div>
+        </div>`;
+      }).join('')}
     </div>`).join('');
 
   container.querySelectorAll('.phrase-item').forEach((el) => {
@@ -629,6 +752,39 @@ function switchTab(tab) {
 
 $('tab-chat').addEventListener('click',    () => switchTab('chat'));
 $('tab-phrases').addEventListener('click', () => switchTab('phrases'));
+
+// ── Sidebar resize ──
+(function () {
+  const resizer = $('sidebar-resizer');
+  const sidebar = $('sidebar');
+  let active = false;
+  let startX = 0;
+  let startW = 0;
+
+  resizer.addEventListener('mousedown', (e) => {
+    active  = true;
+    startX  = e.clientX;
+    startW  = sidebar.offsetWidth;
+    resizer.classList.add('dragging');
+    body.style.cursor     = 'col-resize';
+    body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!active) return;
+    const w = Math.max(220, Math.min(560, startW + (startX - e.clientX)));
+    sidebar.style.width = w + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!active) return;
+    active = false;
+    resizer.classList.remove('dragging');
+    body.style.cursor     = '';
+    body.style.userSelect = '';
+  });
+})();
 
 // ── Initial render ──
 applyListeningState();

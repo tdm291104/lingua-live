@@ -1,7 +1,7 @@
 const { ipcMain } = require('electron');
 const audio = require('./audio');
 const { connect } = require('./openai-stt');
-const { translate, translateStreaming, chat, isRefusal } = require('./gpt');
+const { translate, translateStreaming, chat, predictIntent, isRefusal } = require('./gpt');
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
@@ -186,6 +186,15 @@ function setup(mainWindow) {
   ipcMain.on('sources:change', (_, { sources }) => {
     currentSources = sources;
     if (ws) restartAudio(sources);
+  });
+
+  ipcMain.on('ai:predict', async (_, { partial }) => {
+    try {
+      const result = await predictIntent(OPENAI_KEY, partial, transcriptLines.slice(-3));
+      send('ai:predict:result', { partial, result });
+    } catch {
+      send('ai:predict:result', { partial, result: '' });
+    }
   });
 
   ipcMain.on('ai:chat', async (_, { message }) => {

@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('api', {
   changeLang:      (lang)     => ipcRenderer.send('lang:change', { lang }),
   changeSources:   (sources)  => ipcRenderer.send('sources:change', { sources }),
   chat:            (message)  => ipcRenderer.send('ai:chat', { message }),
+  predict:         (partial)  => ipcRenderer.send('ai:predict', { partial }),
+  onPredictResult: (cb) => { ipcRenderer.removeAllListeners('ai:predict:result'); ipcRenderer.on('ai:predict:result', (_, d) => cb(d)); },
 
   onInterim:  (cb) => { ipcRenderer.removeAllListeners('transcript:interim');  ipcRenderer.on('transcript:interim',  (_, d) => cb(d)); },
   onFinal:    (cb) => { ipcRenderer.removeAllListeners('transcript:final');    ipcRenderer.on('transcript:final',    (_, d) => cb(d)); },

@@ -19,6 +19,27 @@ body {
 .drag-region { -webkit-app-region: drag; }
 .no-drag     { -webkit-app-region: no-drag; }
 
+/* ── Sidebar resize handle ── */
+#sidebar-resizer {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  z-index: 10;
+  transition: background 0.15s;
+  -webkit-app-region: no-drag;
+}
+#sidebar-resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+}
+#sidebar-resizer:hover,
+#sidebar-resizer.dragging {
+  background: oklch(0.75 0.12 295 / 0.35);
+}
+
 /* ── Sidebar toggle ── */
 #view-expanded { display: flex; }
 #sidebar { display: flex; }
@@ -130,6 +151,38 @@ body.state-listening .when-listening { display: flex; }
 .sidebar-tab { background: transparent; color: oklch(0.6 0.015 280); transition: background 0.1s, color 0.1s; }
 .sidebar-tab:hover { background: oklch(0.95 0.008 280); }
 .sidebar-tab-active { background: oklch(0.97 0.025 295) !important; color: oklch(0.45 0.12 295) !important; }
+
+/* ── Autocomplete hint ── */
+#autocomplete-hint {
+  font-size: 12px;
+  color: oklch(0.72 0.02 280);
+  padding: 3px 0 1px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#autocomplete-hint .hint-tab {
+  display: inline-block;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  background: oklch(0.93 0.005 270);
+  color: oklch(0.58 0.02 280);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+/* ── Furigana (ruby) ── */
+ruby { ruby-align: center; }
+rt { font-size: 0.58em; color: oklch(0.52 0.08 295); line-height: 1; }
+
+/* ── Chat translation (phần dịch nhỏ hơn, xuống hàng) ── */
+.chat-translation { display: block; font-size: 11.5px; color: oklch(0.6 0.04 290); margin-top: 3px; padding-left: 2px; }
 
 /* ── Text selection ── */
 #committed-lines, #live-line, #chat-history, #panel-phrases { user-select: text; -webkit-user-select: text; }
